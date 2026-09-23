@@ -31,6 +31,7 @@ const PAGE_QUERY = /* GraphQL */ `
     page(id: $uri, idType: URI) {
       title
       skippedBlocks
+      omittedBlocks
       contentBlocks {
         __typename
         ... on HeroBlock {
@@ -87,6 +88,7 @@ const responseSchema = z.object({
     .object({
       title: z.string(),
       skippedBlocks: z.array(z.string()).default([]),
+      omittedBlocks: z.array(z.string()).default([]),
       contentBlocks: z.array(z.unknown()).default([]),
     })
     .nullable(),
@@ -108,6 +110,13 @@ export interface Page {
   blocks: Block[];
   /** Block names WordPress sent that have no component here. */
   skipped: string[];
+  /**
+   * Block names the front end understands, but which had nothing in them to
+   * draw - an empty button, a paragraph with no words. The block still looks
+   * present in the editor, so this has to be reported or it reads as content
+   * destroyed on save.
+   */
+  omitted: string[];
   /** Block names that failed validation and were discarded. */
   dropped: string[];
 }
@@ -188,6 +197,12 @@ export async function loadSiteContent(pathname: string): Promise<SiteContent> {
     console.warn(`[content] dropped ${dropped.length} block(s) that failed validation: ${dropped.join(', ')}`);
   }
 
+  if (page.omittedBlocks.length > 0) {
+    console.warn(
+      `[content] ${page.omittedBlocks.length} block(s) had nothing to render: ${page.omittedBlocks.join(', ')}`,
+    );
+  }
+
   return {
     pathname,
     navigation,
@@ -195,6 +210,7 @@ export async function loadSiteContent(pathname: string): Promise<SiteContent> {
       title: page.title,
       blocks,
       skipped: page.skippedBlocks,
+      omitted: page.omittedBlocks,
       dropped,
     },
   };

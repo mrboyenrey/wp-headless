@@ -45,18 +45,18 @@ final class Block_Parser {
     /**
      * Memoised parse results, keyed by post id + content hash.
      *
-     * `contentBlocks` and `skippedBlocks` are two separate GraphQL fields on
-     * the same page, so without this the content would be parsed twice per
-     * request for no gain.
+     * `contentBlocks`, `skippedBlocks` and `omittedBlocks` are separate
+     * GraphQL fields on the same page, so without this the content would be
+     * parsed three times per request for no gain.
      *
-     * @var array<string, array{blocks: array<int, array<string, mixed>>, skipped: array<int, string>}>
+     * @var array<string, array{blocks: array<int, array<string, mixed>>, skipped: array<int, string>, omitted: array<int, string>}>
      */
     private static array $cache = [];
 
     /**
      * Parse a post's content into typed blocks.
      *
-     * @return array{blocks: array<int, array<string, mixed>>, skipped: array<int, string>}
+     * @return array{blocks: array<int, array<string, mixed>>, skipped: array<int, string>, omitted: array<int, string>}
      */
     public static function parse(int $post_id, string $content): array {
         $cache_key = $post_id . ':' . md5($content);
@@ -67,12 +67,25 @@ final class Block_Parser {
 
         $blocks  = [];
         $skipped = [];
+        $omitted = [];
 
         foreach (parse_blocks($content) as $block) {
             $name = $block['blockName'] ?? null;
 
-            // Whitespace between blocks parses as an entry with a null name.
+            /*
+             * A null block name means content that is not inside block comments
+             * at all. That is either whitespace sitting between blocks, or a
+             * block the editor converted to freeform (classic) content.
+             *
+             * Whitespace is noise and is ignored. Freeform content is real
+             * writing, and discarding it without a word is precisely the
+             * failure this plugin exists to prevent, so it is reported.
+             */
             if ($name === null) {
+                if (trim(strip_tags((string) ($block['innerHTML'] ?? ''))) !== '') {
+                    $skipped[] = 'core/freeform';
+                }
+
                 continue;
             }
 
@@ -84,17 +97,28 @@ final class Block_Parser {
             $method = self::HANDLERS[$name];
             $parsed = self::$method($block);
 
-            // Handlers return null for a block that is present but empty, e.g.
-            // a paragraph the editor added and never typed into. Dropping it
-            // here keeps blank boxes out of the rendered page.
-            if ($parsed !== null) {
-                $blocks[] = $parsed;
+            /*
+             * A handler returns null for a block the front end understands but
+             * that has nothing in it to draw: a button with no label or target,
+             * a paragraph with no words, a cover with no heading.
+             *
+             * Dropping it is right - there is nothing to render. Dropping it
+             * silently is not. To the editor the block is still sitting there
+             * in WordPress, so a component that quietly fails to appear reads
+             * as content destroyed on save.
+             */
+            if ($parsed === null) {
+                $omitted[] = $name;
+                continue;
             }
+
+            $blocks[] = $parsed;
         }
 
         return self::$cache[$cache_key] = [
             'blocks'  => $blocks,
             'skipped' => $skipped,
+            'omitted' => $omitted,
         ];
     }
 

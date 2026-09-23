@@ -195,6 +195,17 @@ final class Schema {
                     return self::parsed($source)['skipped'];
                 },
             ]);
+
+            register_graphql_field($post_type, 'omittedBlocks', [
+                'type'        => ['list_of' => 'String'],
+                'description' => __(
+                    'Block names the front end understands, but which held nothing to render - a button with no label or target, a paragraph with no words. Reported because the block still looks present in the editor, so a component that quietly fails to appear reads as content lost on save.',
+                    'headless-blocks'
+                ),
+                'resolve'     => static function ($source): array {
+                    return self::parsed($source)['omitted'];
+                },
+            ]);
         }
     }
 
@@ -204,7 +215,7 @@ final class Schema {
      * WPGraphQL hands resolvers its own model objects. `databaseId` is the
      * canonical accessor there, with `ID` kept as a fallback.
      *
-     * @return array{blocks: array<int, array<string, mixed>>, skipped: array<int, string>}
+     * @return array{blocks: array<int, array<string, mixed>>, skipped: array<int, string>, omitted: array<int, string>}
      */
     private static function parsed($source): array {
         $post_id = 0;
@@ -218,7 +229,7 @@ final class Schema {
         $post = $post_id > 0 ? get_post($post_id) : null;
 
         if (!$post instanceof \WP_Post) {
-            return ['blocks' => [], 'skipped' => []];
+            return ['blocks' => [], 'skipped' => [], 'omitted' => []];
         }
 
         return Block_Parser::parse((int) $post->ID, (string) $post->post_content);

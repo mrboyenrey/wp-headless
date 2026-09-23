@@ -36,7 +36,9 @@ export function App({ content }: { content: SiteContent }) {
           <NotFound pathname={pathname} />
         )}
 
-        {page ? <ContentNotice skipped={page.skipped} dropped={page.dropped} /> : null}
+        {page ? (
+          <ContentNotice skipped={page.skipped} omitted={page.omitted} dropped={page.dropped} />
+        ) : null}
       </main>
 
       <SiteFooter />
