@@ -14,6 +14,16 @@
 # Unix tool.
 *.bash text eol=lf
 Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+
+# Docker reads .dockerignore as a list of patterns. A trailing carriage return
+# makes a pattern stop matching, so CRLF here can silently defeat the file and
+# pull node_modules into the build context.
+.dockerignore text eol=lf
+
+# Parsed rather than executed, but by tools that do not expect carriage returns.
+docker-compose*.yml text eol=lf
+*.yaml text eol=lf
 
 # Windows-only scripts, if any are ever added, want the opposite.
 *.bat text eol=crlf
