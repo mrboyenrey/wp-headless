@@ -40,11 +40,13 @@ services:
       WORDPRESS_DB_USER: ${MYSQL_USER}
       WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
       WORDPRESS_DEBUG: 1
-      # WP_HOME/WP_SITEURL must match the port the browser sees, otherwise
-      # every admin redirect and every media URL points somewhere unreachable.
+      # WP_HOME/WP_SITEURL must match the address the browser actually uses,
+      # otherwise every admin redirect and every media URL points somewhere
+      # unreachable. Local by default; a Codespace overwrites WP_URL with its
+      # forwarded address - see .devcontainer/setup.sh.
       WORDPRESS_CONFIG_EXTRA: |
-        define('WP_HOME', 'http://localhost:${WP_PORT}');
-        define('WP_SITEURL', 'http://localhost:${WP_PORT}');
+        define('WP_HOME', '${WP_URL}');
+        define('WP_SITEURL', '${WP_URL}');
         define('WP_ENVIRONMENT_TYPE', 'local');
     volumes:
       - wp_data:/var/www/html

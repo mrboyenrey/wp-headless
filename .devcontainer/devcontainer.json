@@ -1,0 +1,21 @@
+{
+  "name": "Headless WordPress",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+  },
+
+  "forwardPorts": [3000, 8080, 8081],
+
+  "portsAttributes": {
+    "3000": { "label": "The site", "onAutoForward": "openBrowser" },
+    "8080": { "label": "WordPress admin" },
+    "8081": { "label": "phpMyAdmin" }
+  },
+
+  "hostRequirements": { "cpus": 4, "memory": "8gb", "storage": "32gb" },
+
+  "postCreateCommand": "bash .devcontainer/setup.sh"
+}

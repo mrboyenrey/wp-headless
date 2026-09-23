@@ -1,5 +1,8 @@
 # A personal site on headless WordPress
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/mrboyenrey/wp-headless)
+[![Walkthrough](https://img.shields.io/badge/walkthrough-GitHub_Pages-2ea44f)](https://mrboyenrey.github.io/wp-headless/)
+
 WordPress holds the content. A server-rendered React application renders it. An
 editor assembles a page by picking blocks from the standard block editor, and
 the front end turns each block into a typed component — no developer involved,
@@ -15,9 +18,43 @@ comments are and that is what the section below is about.
 
 ---
 
-## Running it
+## Getting it running
 
-Requirements: Docker Desktop, Node 20+.
+### The one-click way — GitHub Codespaces
+
+Click the badge at the top of this file, or **Code → Codespaces → Create
+codespace on main**. GitHub provisions a cloud machine and
+`.devcontainer/setup.sh` does the rest: starts the containers, installs
+WordPress, activates both plugins, seeds the demo content and builds the front
+end.
+
+When it finishes, start the site:
+
+```bash
+cd app && npm start
+```
+
+Port 3000 opens by itself. Nothing to install locally — a browser and a GitHub
+account is enough. The first run takes a few minutes because the images have to
+download.
+
+> **It is ephemeral.** A codespace suspends after roughly 30 minutes idle and
+> the forwarded URLs change whenever you restart it. Excellent for reviewing;
+> not a deployment.
+
+### On your own machine
+
+Requirements: **Docker Desktop**, running, and **Node 20 or newer**.
+
+```bash
+bash .devcontainer/setup.sh     # containers, WordPress, plugins, content, build
+cd app && npm run dev
+```
+
+The script is idempotent. Run it again at any time to rebuild the demo content;
+it skips the WordPress install if WordPress is already installed.
+
+If you would rather do it by hand, it is four steps:
 
 ```bash
 # 1. WordPress, MySQL and phpMyAdmin
@@ -40,6 +77,8 @@ docker compose run --rm wpcli eval-file /seed/seed.php
 cd app && npm install && npm run dev
 ```
 
+### Addresses
+
 | Service | Address | Credentials |
 | --- | --- | --- |
 | The site | http://localhost:3000 | — |
@@ -48,9 +87,45 @@ cd app && npm install && npm run dev
 | phpMyAdmin | http://localhost:8081 | `root` / `root` |
 
 The credentials are throwaway values for a container bound to localhost. They
-are not secrets and are not for anything else.
+are not secrets and are not for anything else — but change them before pointing
+a public address at this.
 
-**Production build:** `cd app && npm run build && npm start`
+### The commands you will actually use
+
+| Goal | Command | Run from |
+| --- | --- | --- |
+| Start WordPress | `docker compose up -d` | repository root |
+| Start the site | `npm run dev` | `app/` |
+| Pause WordPress (keeps data) | `docker compose stop` | repository root |
+| Stop WordPress | `docker compose down` | repository root |
+| Stop the site | `Ctrl+C` | wherever it is running |
+| What is running? | `docker compose ps` | repository root |
+
+> **The app and the containers are independent.** Docker can be perfectly
+> healthy while http://localhost:3000 refuses to connect, because nothing is
+> running the Node server. That catches people out — it caught me out twice
+> while building this.
+
+### Production build
+
+```bash
+cd app
+npm run build     # browser bundle + SSR bundle
+npm start         # serves the built output; no Vite involved
+```
+
+Development and production are one file, `app/server.js`, switched by `--prod`.
+
+### If something goes wrong
+
+| Symptom | Cause |
+| --- | --- |
+| `npipe ... not found` | Docker Desktop is not running |
+| `port 3000 is already in use` | An earlier dev server is still alive — stop it, or run `PORT=3001 npm run dev` |
+| `ERR_CONNECTION_REFUSED` on :3000 | The Node server is not running. Docker being up is not enough |
+| A section is missing from a page | The content notice on the page names the block and the reason |
+| Images broken inside a Codespace | `WP_URL` is not the forwarded address — re-run `.devcontainer/setup.sh` |
+| WordPress redirects to localhost | Same cause as above |
 
 ---
 
