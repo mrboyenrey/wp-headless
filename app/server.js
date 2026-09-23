@@ -132,6 +132,27 @@ async function renderDocument(url, pathname, response) {
     // resolves the module entry, so the document is the same shape in both
     // modes and differences show up now rather than at deploy time.
     template = await vite.transformIndexHtml(url, template);
+
+    /*
+     * Give development a real stylesheet.
+     *
+     * Vite hands CSS to the browser as a JavaScript module in development, so
+     * by default the document contains no stylesheet at all and the page is
+     * completely unstyled until that module executes. For an application whose
+     * whole premise is that the HTML is finished before JavaScript, that is the
+     * wrong default: any script error, cache miss or slow connection shows the
+     * visitor bare HTML, and there is a flash of unstyled content on every
+     * load.
+     *
+     * `?direct` asks Vite for the compiled CSS rather than the module wrapper,
+     * so the stylesheet is in the document and applies on first paint. The
+     * module still loads for hot reloading, so nothing is lost.
+     */
+    template = template.replace(
+      '</head>',
+      '    <link rel="stylesheet" href="/src/index.css?direct" />\n  </head>',
+    );
+
     ({ render } = await vite.ssrLoadModule('/src/entry-server.tsx'));
   } else {
     template = await fs.readFile(path.join(root, 'dist', 'client', 'index.html'), 'utf8');
