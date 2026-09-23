@@ -1,0 +1,20 @@
+# Line endings.
+#
+# Shell scripts must keep LF endings in the repository. With CRLF, a Linux
+# machine reads the shebang as `/bin/bash^M` and refuses to run the file:
+#
+#     bash: .devcontainer/setup.sh: /bin/bash^M: bad interpreter: No such file
+#
+# Git Bash on Windows tolerates CRLF, so this only breaks on Linux - which is
+# precisely where the one-command setup is meant to run, in a Codespace. Setting
+# it here means the file is stored and checked out with LF everywhere.
+*.sh text eol=lf
+
+# Same reasoning for anything else that might be executed or parsed by a
+# Unix tool.
+*.bash text eol=lf
+Dockerfile text eol=lf
+
+# Windows-only scripts, if any are ever added, want the opposite.
+*.bat text eol=crlf
+*.cmd text eol=crlf
