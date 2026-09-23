@@ -196,6 +196,23 @@ if (!isProduction) {
   });
 }
 
+/*
+ * A port clash is the single most likely way this process fails to start, and
+ * Node's default behaviour is to throw an unhandled 'error' event and dump a
+ * stack trace naming neither the cause nor the fix. Since the usual cause is
+ * an earlier copy of this same server still running, say so.
+ */
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`[ssr] port ${port} is already in use.`);
+    console.error('[ssr] another server is listening there - stop it and try again,');
+    console.error(`[ssr] or start this one elsewhere with:  PORT=3001 npm run dev`);
+    process.exit(1);
+  }
+
+  throw error;
+});
+
 server.listen(port, () => {
   console.log(`[ssr] ${isProduction ? 'production' : 'development'} server listening on http://localhost:${port}`);
   console.log(`[ssr] content source: ${process.env.WP_GRAPHQL_URL ?? 'http://localhost:8080/graphql (default)'}`);
