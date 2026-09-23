@@ -1,0 +1,3 @@
+This file exists so GitHub Pages serves the folder as-is instead of running it
+through Jekyll. Without it, files beginning with an underscore are silently
+ignored, and the build can fail for reasons that are hard to see.

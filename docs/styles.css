@@ -1,0 +1,639 @@
+/* =================================================================
+   Headless WordPress — project walkthrough
+   Plain CSS. No framework, no build step, no JavaScript.
+   ================================================================= */
+
+:root {
+  --bg:       #060911;
+  --bg-2:     #0a1020;
+  --surface:  #111a2b;
+  --line:     #1e2b44;
+  --text:     #e8eefc;
+  --text-dim: #b7c4dc;
+  --muted:    #7f8ea8;
+  --brand:    #3b82f6;
+  --brand-2:  #60a5fa;
+  --accent:   #2dd4bf;
+
+  --serif: Georgia, "Times New Roman", ui-serif, serif;
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono:  ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --measure: 64ch;
+  --pad:     clamp(1.25rem, 4vw, 4rem);
+  --radius:  14px;
+
+  --step-0: clamp(0.95rem, 0.90rem + 0.25vw, 1.05rem);
+  --step-1: clamp(1.10rem, 1.00rem + 0.60vw, 1.35rem);
+  --step-2: clamp(1.40rem, 1.15rem + 1.30vw, 2.00rem);
+  --step-3: clamp(1.90rem, 1.40rem + 2.60vw, 3.20rem);
+  --step-4: clamp(2.60rem, 1.60rem + 5.50vw, 5.50rem);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* `proximity` rather than `mandatory`: a slide taller than the viewport still
+     has to be readable, and mandatory snapping fights someone trying to read it. */
+  scroll-snap-type: y proximity;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--step-0);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------- slides */
+
+.slide {
+  min-height: 100vh;
+  min-height: 100svh;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+  display: flex;
+  align-items: center;
+  padding: clamp(4rem, 9vh, 7rem) var(--pad);
+  border-bottom: 1px solid var(--line);
+}
+
+.wrap {
+  width: min(1120px, 100%);
+  margin-inline: auto;
+}
+
+/*
+ * Reserve a gutter for the section rail.
+ *
+ * The rail is fixed to the right edge while the content is centred, so without
+ * this they collide on a laptop-width viewport: at around 1024px the rail sits
+ * directly on top of the last column of text. Below 761px the rail is hidden
+ * entirely, so this only applies where there is room for it.
+ */
+@media (min-width: 761px) {
+  .slide {
+    padding-right: calc(var(--pad) + 2.75rem);
+  }
+}
+
+.slide--title {
+  border-bottom-color: var(--brand);
+}
+
+.slide--title,
+.slide--end {
+  background:
+    radial-gradient(80ch 60ch at 12% 0%, rgba(59, 130, 246, 0.14), transparent 60%),
+    radial-gradient(60ch 50ch at 95% 100%, rgba(45, 212, 191, 0.10), transparent 60%),
+    var(--bg-2);
+}
+
+/* ------------------------------------------------------------ type scale */
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.display {
+  font-family: var(--serif);
+  font-size: var(--step-4);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-family: var(--serif);
+  font-size: var(--step-3);
+  font-weight: 600;
+  margin-bottom: 1.75rem;
+}
+
+h3 {
+  font-size: var(--step-1);
+  font-weight: 650;
+  margin-bottom: 0.5rem;
+}
+
+.sub {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brand-2);
+  margin: 2.5rem 0 1rem;
+}
+
+.sub--first {
+  margin-top: 0;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-2);
+  margin: 0 0 1.25rem;
+}
+
+.lede {
+  font-size: var(--step-1);
+  color: var(--text-dim);
+  max-width: var(--measure);
+  margin: 1.5rem 0 0;
+}
+
+.lede--tight {
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+p {
+  max-width: var(--measure);
+}
+
+.pull {
+  font-family: var(--serif);
+  font-size: var(--step-2);
+  color: var(--text);
+  border-left: 2px solid var(--brand);
+  padding-left: 1.25rem;
+  margin: 0 0 1.5rem;
+  max-width: 34ch;
+}
+
+.thanks {
+  font-family: var(--serif);
+  font-size: var(--step-2);
+  margin-top: 3rem;
+}
+
+/* --------------------------------------------------------------- layout */
+
+.cards {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1.5rem;
+}
+
+.cards--two {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.cards--three {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: start;
+}
+
+.split--even {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.split--wide-left {
+  grid-template-columns: minmax(320px, 1.3fr) minmax(260px, 1fr);
+}
+
+@media (max-width: 860px) {
+  .split--wide-left {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.35rem;
+}
+
+.card p {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.card--accent {
+  border-top: 2px solid var(--brand);
+}
+
+.card__tag {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.6rem;
+}
+
+/* --------------------------------------------------------------- tables */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-block: 1.5rem;
+  font-size: 0.92rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.table th {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.table td {
+  color: var(--text-dim);
+}
+
+.table td:first-child {
+  color: var(--text);
+}
+
+.table--wide {
+  margin-top: 2rem;
+}
+
+/* ------------------------------------------------------------ code, meta */
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.20);
+  border-radius: 5px;
+  padding: 0.08em 0.35em;
+}
+
+pre {
+  background: #05080f;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--brand);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  overflow-x: auto;
+  margin-block: 1.5rem;
+}
+
+pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+.note {
+  color: var(--text-dim);
+  border-left: 2px solid var(--line);
+  padding-left: 1.1rem;
+  margin-block: 1.75rem;
+}
+
+.note--small {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.callout {
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.4rem;
+  margin-top: 1.75rem;
+}
+
+.callout p:first-child {
+  margin-top: 0;
+}
+
+.callout p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------------------------------------------------------------- lists */
+
+.rules {
+  padding-left: 1.1rem;
+  color: var(--text-dim);
+  max-width: var(--measure);
+}
+
+.rules--tight {
+  margin-block: 0.75rem;
+}
+
+.rules li {
+  margin-block: 0.6rem;
+}
+
+.rules strong {
+  color: var(--text);
+}
+
+.checks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: var(--measure);
+}
+
+.checks li {
+  color: var(--text-dim);
+  padding-left: 1.9rem;
+  position: relative;
+  margin-block: 0.85rem;
+}
+
+.checks li::before {
+  content: "\2713";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.checks strong {
+  color: var(--text);
+}
+
+.bugs,
+.next {
+  color: var(--text-dim);
+  padding-left: 1.3rem;
+  max-width: var(--measure);
+}
+
+.bugs li,
+.next li {
+  margin-block: 0.85rem;
+}
+
+.bugs strong,
+.next strong {
+  color: var(--text);
+}
+
+/* ------------------------------------------------------ flow (a journey) */
+
+.flow {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.flow li {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.65rem 0;
+  position: relative;
+}
+
+/* The connector between steps, drawn as a pseudo-element. */
+.flow li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 2.6rem;
+  bottom: -0.65rem;
+  width: 1px;
+  background: var(--line);
+}
+
+.flow__n {
+  flex: 0 0 auto;
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--brand-2);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  position: relative;
+  z-index: 1;
+}
+
+.flow strong {
+  display: block;
+  color: var(--text);
+}
+
+.flow span:not(.flow__n) {
+  color: var(--text-dim);
+  font-size: 0.92rem;
+}
+
+/* ----------------------------------------------------------------- steps */
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-block: 1.5rem 2.5rem;
+}
+
+.step {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.35rem;
+}
+
+.step p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+}
+
+.step__n {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  margin-bottom: 0.75rem;
+}
+
+/* ------------------------------------------------------------------ meta */
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin: 3rem 0 0;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.meta dt {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.meta dd {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+}
+
+/* ------------------------------------------------------------------ rail */
+
+.rail {
+  position: fixed;
+  right: clamp(0.6rem, 2vw, 1.6rem);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  z-index: 10;
+}
+
+.rail a {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.rail a:hover,
+.rail a:focus-visible {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+/* Labels on hover or keyboard focus: the CSS-only equivalent of a tooltip. */
+.rail a::after {
+  content: attr(data-label);
+  position: absolute;
+  right: 2.5rem;
+  white-space: nowrap;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.rail a:hover::after,
+.rail a:focus-visible::after {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .rail {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ a11y */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------- print */
+/* Each slide becomes its own page, so the deck exports to PDF cleanly. */
+
+@media print {
+  .rail {
+    display: none;
+  }
+
+  html {
+    scroll-snap-type: none;
+  }
+
+  .slide {
+    min-height: auto;
+    break-after: page;
+    page-break-after: always;
+    border-bottom: 0;
+    padding: 1.5rem 0;
+  }
+
+  .slide:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  pre {
+    overflow: visible;
+    white-space: pre-wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

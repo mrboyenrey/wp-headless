@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Replaced per request by the server with the title, description and any
+      block-specific tags. This is one of the reasons the page is rendered on
+      the server: the head has to be correct before the browser sees it.
+    -->
+    <!--ssr-head-->
+  </head>
+  <body>
+    <div id="root"><!--ssr-html--></div>
+    <!--
+      The validated page data, serialised into the document so the browser can
+      hydrate against exactly what the server rendered instead of fetching it
+      again and risking a mismatch.
+    -->
+    <!--ssr-data-->
+    <script type="module" src="/src/entry-client.tsx"></script>
+  </body>
+</html>

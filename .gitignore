@@ -1,0 +1,23 @@
+# Local secrets / machine-specific config
+.env
+
+# Scratch space for one-off curl/graphql checks
+.tmp/
+
+# Node
+node_modules/
+npm-debug.log*
+app/dist/
+app/node_modules/
+
+# Built SSR bundles
+app/dist-server/
+
+# WordPress runtime artefacts (the site itself lives in a Docker volume,
+# so nothing here should ever be committed)
+wp-data/
+*.log
+
+# OS noise
+.DS_Store
+Thumbs.db
