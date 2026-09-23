@@ -20,48 +20,33 @@ comments are and that is what the section below is about.
 
 ## Getting it running
 
-### The one-click way — GitHub Codespaces
+**Everything runs in Docker.** You need Docker Desktop and nothing else — no
+Node, no PHP, no MySQL, and no XAMPP.
 
-Click the badge at the top of this file, or **Code → Codespaces → Create
-codespace on main**. GitHub provisions a cloud machine and
-`.devcontainer/setup.sh` does the rest: starts the containers, installs
-WordPress, activates both plugins, seeds the demo content and builds the front
-end.
-
-When it finishes, start the site:
+### One command
 
 ```bash
-cd app && npm start
+bash .devcontainer/setup.sh
 ```
 
-Port 3000 opens by itself. Nothing to install locally — a browser and a GitHub
-account is enough. The first run takes a few minutes because the images have to
-download.
+That starts all four containers, installs WordPress, activates the plugins,
+seeds the demo content and compiles the React application. It is idempotent:
+running it again rebuilds the demo content, and it skips the WordPress install
+if WordPress is already there.
 
-> **It is ephemeral.** A codespace suspends after roughly 30 minutes idle and
-> the forwarded URLs change whenever you restart it. Excellent for reviewing;
-> not a deployment.
+The first run takes a few minutes because the images have to download. When it
+finishes the site is already up at <http://localhost:3000> — there is nothing to
+start afterwards.
 
-### On your own machine
-
-Requirements: **Docker Desktop**, running, and **Node 20 or newer**.
-
-```bash
-bash .devcontainer/setup.sh     # containers, WordPress, plugins, content, build
-cd app && npm run dev
-```
-
-The script is idempotent. Run it again at any time to rebuild the demo content;
-it skips the WordPress install if WordPress is already installed.
-
-If you would rather do it by hand, it is four steps:
+### The same thing by hand
 
 ```bash
-# 1. WordPress, MySQL and phpMyAdmin
 cp .env.example .env
-docker compose up -d
 
-# 2. WordPress core, the GraphQL plugin, and this project's plugin
+# Builds the application image and starts all four containers.
+docker compose up -d --build
+
+# WordPress core, the GraphQL plugin, and this project's plugin
 docker compose run --rm wpcli core install \
   --url="http://localhost:8080" \
   --title="Boien Reyes" \
@@ -70,12 +55,18 @@ docker compose run --rm wpcli core install \
 docker compose run --rm wpcli plugin install wp-graphql --activate
 docker compose run --rm wpcli plugin activate headless-blocks
 
-# 3. Some content to look at
+# Content to look at
 docker compose run --rm wpcli eval-file /seed/seed.php
-
-# 4. The front end
-cd app && npm install && npm run dev
 ```
+
+### GitHub Codespaces
+
+Click the badge at the top of this file, or **Code → Codespaces → Create
+codespace on main**. The devcontainer runs `.devcontainer/setup.sh` for you.
+
+> **It is ephemeral.** A codespace suspends after roughly 30 minutes idle and
+> the forwarded URLs change whenever you restart it. Excellent for reviewing;
+> not a deployment.
 
 ### Addresses
 
@@ -94,27 +85,54 @@ a public address at this.
 
 | Goal | Command | Run from |
 | --- | --- | --- |
-| Start WordPress | `docker compose up -d` | repository root |
-| Start the site | `npm run dev` | `app/` |
-| Pause WordPress (keeps data) | `docker compose stop` | repository root |
-| Stop WordPress | `docker compose down` | repository root |
-| Stop the site | `Ctrl+C` | wherever it is running |
+| Start everything | `docker compose up -d` | repository root |
+| Start, rebuilding the app image | `docker compose up -d --build` | repository root |
+| Stop everything (keeps your data) | `docker compose down` | repository root |
+| Pause, then resume quickly | `docker compose stop` / `start` | repository root |
 | What is running? | `docker compose ps` | repository root |
+| Tail one service's logs | `docker compose logs -f app` | repository root |
+| Rebuild the demo content | `bash .devcontainer/setup.sh` | repository root |
 
-> **The app and the containers are independent.** Docker can be perfectly
-> healthy while http://localhost:3000 refuses to connect, because nothing is
-> running the Node server. That catches people out — it caught me out twice
-> while building this.
+> **`docker compose down -v` deletes the database and all content.** Plain
+> `down` keeps it. The data lives in Docker volumes, not in this folder, so
+> moving or re-cloning the project does not affect it.
 
-### Production build
+### Developing with hot reloading
+
+The `app` container runs the **production** build — compiled, minified, no
+watcher — because that is what a reviewer should be looking at. To edit React
+with hot reloading, stop that container and run the app on the host instead.
+This is the only workflow that needs Node:
 
 ```bash
-cd app
-npm run build     # browser bundle + SSR bundle
-npm start         # serves the built output; no Vite involved
+docker compose stop app
+cd app && npm install && npm run dev
 ```
 
+Reloading is instant, and the host app talks to the same WordPress container on
+`localhost:8080`. Put it back in Docker with `docker compose up -d app`.
+
 Development and production are one file, `app/server.js`, switched by `--prod`.
+
+### Two addresses for one container
+
+Worth knowing before you touch the configuration:
+
+```mermaid
+flowchart LR
+    B["Browser"] -->|":3000"| A["app container"]
+    A -->|"wordpress:80/graphql<br/>internal network"| W["wordpress container"]
+    B -->|"localhost:8080<br/>to load images"| W
+```
+
+The application fetches content **server-side, inside the Docker network**, so it
+addresses WordPress as `wordpress` on port 80. Images in the HTML are loaded by
+the **browser**, which sits outside that network and cannot resolve that name, so
+`WP_URL` stays `http://localhost:8080`.
+
+Getting these the wrong way round is the classic way to break a containerised
+SSR app: it works locally where everything is `localhost`, then every image 404s
+once it is containerised.
 
 ### If something goes wrong
 

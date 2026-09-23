@@ -1,0 +1,21 @@
+# Keep the image build honest and fast.
+#
+# Without this, `COPY . .` would copy the host's node_modules and dist into the
+# image - and a Windows-built node_modules contains Windows-native binaries that
+# will not run on Linux. The dependencies must be installed inside the image.
+node_modules
+
+# Build output is produced inside the image. Copying the host's would hide a
+# broken build behind a stale artefact.
+dist
+
+# Never ship local configuration or secrets.
+.env
+.env.*
+
+# Not needed to build.
+.git
+.gitignore
+Dockerfile
+.dockerignore
+*.log

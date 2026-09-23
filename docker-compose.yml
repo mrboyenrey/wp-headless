@@ -48,11 +48,43 @@ services:
         define('WP_HOME', '${WP_URL}');
         define('WP_SITEURL', '${WP_URL}');
         define('WP_ENVIRONMENT_TYPE', 'local');
+    healthcheck:
+      # PHP is guaranteed to be present in this image; wget and curl are not.
+      # This only reports that Apache is listening, which is all the app
+      # container needs before it can start asking for content.
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 80) ? 0 : 1);"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
     volumes:
       - wp_data:/var/www/html
       # Our custom plugin is bind-mounted rather than baked into the image,
       # so editing PHP here is picked up immediately with no rebuild.
       - ./wp-plugins/headless-blocks:/var/www/html/wp-content/plugins/headless-blocks
+    networks: [wpnet]
+
+  app:
+    build:
+      context: ./app
+    container_name: wph-app
+    restart: unless-stopped
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT}:3000"
+    environment:
+      # Deliberately a different address from WP_URL, and the difference matters.
+      #
+      # This one is used by the server inside the container when it fetches
+      # content, so it goes over the Compose network using the service name and
+      # the container's own port. WP_URL stays http://localhost:8080 because the
+      # BROWSER uses it to load images, and the browser sits outside this network
+      # and cannot resolve the name "wordpress".
+      WP_GRAPHQL_URL: http://wordpress:80/graphql
+      PORT: "3000"
+      NODE_ENV: production
     networks: [wpnet]
 
   phpmyadmin:

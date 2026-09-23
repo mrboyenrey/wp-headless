@@ -54,8 +54,11 @@ else
   echo "WP_URL=${WP_URL}" >> .env
 fi
 
-echo "Starting containers..."
-docker compose up -d
+echo "Starting containers and building the application image..."
+# --build so the image reflects the current source. The application compiles
+# itself inside the image, which is why no Node installation is needed on this
+# machine - the whole project runs in Docker.
+docker compose up -d --build
 
 # Wait on the healthcheck rather than on a fixed sleep, so this works on a slow
 # machine and does not waste a minute on a fast one.
@@ -118,19 +121,26 @@ until curl -s --max-time 5 http://localhost:8080/graphql > /dev/null 2>&1; do
   sleep 2
 done
 
-echo "Building the front end..."
-(
-  cd app
-  npm install
-  npm run build
-)
+echo "Waiting for the application to answer..."
+attempts=0
+until curl -s --max-time 5 http://localhost:3000/ > /dev/null 2>&1; do
+  attempts=$((attempts + 1))
+
+  if [ "$attempts" -ge 45 ]; then
+    echo "The application did not answer after 90 seconds." >&2
+    echo "Try:  docker compose logs app" >&2
+    exit 1
+  fi
+
+  sleep 2
+done
 
 cat <<EOF
 
   ------------------------------------------------------------------
-  Ready. Start the site with:
+  Everything is running. Open:
 
-      cd app && npm start
+      http://localhost:3000
 
   ------------------------------------------------------------------
     The site          http://localhost:3000
@@ -138,7 +148,14 @@ cat <<EOF
     GraphiQL          ${WP_URL}/graphql
     phpMyAdmin        http://localhost:8081       root / root
 
-  Port 3000 is forwarded automatically by the devcontainer.
+  The React application, WordPress, MySQL and phpMyAdmin all run in Docker.
+  There is nothing to start afterwards, and no Node installation is required.
+
+  To develop with hot reloading instead, stop the app container and run the
+  app on the host:
+
+      docker compose stop app
+      cd app && npm run dev
 
   These credentials are throwaway values for a development container. They are
   not secrets, and they are not for anything reachable from the internet.
