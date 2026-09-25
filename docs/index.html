@@ -214,6 +214,7 @@
             </thead>
             <tbody>
               <tr><td>Rendered site</td><td><code>localhost:3000</code></td><td>What a visitor sees</td></tr>
+              <tr><td>WordPress front end</td><td>redirects to <code>localhost:3000</code></td><td>Closed on purpose, so the active theme is never served</td></tr>
               <tr><td>WordPress admin</td><td><code>localhost:8080/wp-admin</code></td><td>Where pages are written</td></tr>
               <tr><td>GraphiQL</td><td><code>localhost:8080/graphql</code></td><td>Inspecting the contract</td></tr>
               <tr><td>phpMyAdmin</td><td><code>localhost:8081</code></td><td>Looking at the database</td></tr>
@@ -449,8 +450,8 @@ export type BlockOf&lt;T extends BlockType&gt; =
           <p class="lede lede--tight">
             The realistic failure in a headless setup is not a crash. It is quiet omission: an
             editor adds a block, the front end has no component for it, and the content is simply
-            absent. Nobody notices for a month. So both ways that can happen are handled, and both
-            are visible.
+            absent. Nobody notices for a month. All three ways that can happen are handled, and all
+            three are visible.
           </p>
 
           <table class="table table--wide">
@@ -464,9 +465,16 @@ export type BlockOf&lt;T extends BlockType&gt; =
             </thead>
             <tbody>
               <tr>
-                <td>A block type with no component here</td>
-                <td>Skipped by the plugin's allow-list; the page renders normally</td>
+                <td>A block type this front end has no component for</td>
+                <td>The inserter does not offer it; if it arrives anyway, the parser skips it and
+                  the page renders normally</td>
                 <td><code>skippedBlocks</code> in GraphQL, and the on-page content notice</td>
+              </tr>
+              <tr>
+                <td>A supported block with nothing in it</td>
+                <td>Left out. The block is still sitting in the editor looking perfectly fine, so
+                  this is the one that reads as a bug</td>
+                <td><code>omittedBlocks</code> in GraphQL, and the content notice</td>
               </tr>
               <tr>
                 <td>A block claiming a known type that fails validation</td>
@@ -478,9 +486,11 @@ export type BlockOf&lt;T extends BlockType&gt; =
 
           <div class="callout">
             <p>
-              Neither takes the page down. Both are visible. The seeded Home page carries a
-              <code>core/list</code> block <em>on purpose</em>, so this behaviour is demonstrable
-              rather than merely claimed.
+              None of them takes the page down. All are visible. The block inserter is also
+              restricted to the renderable library, so the first case is now prevented rather than
+              reported: an editor cannot insert a block the front end will not draw. The seeded Home
+              page still carries a <code>core/list</code> block <em>on purpose</em>, so the
+              reporting stays demonstrable rather than merely claimed.
             </p>
             <p class="note note--small">
               The on-page notice is scaffolding for this exercise. In a real project the same
