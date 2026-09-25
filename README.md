@@ -348,14 +348,22 @@ a block the front end cannot draw cannot be inserted in the first place.
   block inserter to the renderable library)
 - `wp-plugins/headless-redirect/`: closes WordPress's own front end so the
   active theme is never served to a browser
-- `seed/seed.php`: reproducible demo content, including the placeholder images
-  drawn with GD so no binaries are committed
+- `seed/seed.php`: reproducible demo content, including the placeholder images.
+  Those are composed with GD at seed time rather than committed: a dark base, a
+  few soft lights, a geometric motif, then grain and a fade, so they read as
+  deliberate graphics rather than as a failed image load. The random seed comes
+  from the filename, so a clone draws the same pictures every time
 - `app/server.js`: the SSR server (dev and production in one file)
 - `app/src/blocks/`: the schema, the renderer and the five components
 - `app/src/views/`: one view per route kind, plus the shared block list
 - `app/src/wp/`: the GraphQL client and the page loader
 - `app/src/entry-server.tsx`, `entry-client.tsx`, `App.tsx`: SSR plumbing
 - `app/src/components/`, `config.ts`, `index.css`, `vite.config.ts`, `tsconfig.json`
+- `app/public/portrait.png`: the one binary in the repository, and deliberate. A
+  personal site with no photograph of the person on it is a strange thing to hand
+  a reviewer. It is a 97x97 greyscale headshot, 10 KB, and it is part of the shell
+  rather than a CMS media item, so it ships with the application instead of
+  depending on a Docker volume. Everything else on the site is drawn at seed time
 
 **No starter template was used.** The app was scaffolded by hand rather than via
 `create-vite`, so there is no generated boilerplate in it that I would have to

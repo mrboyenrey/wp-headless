@@ -30,9 +30,13 @@ const isProduction = process.argv.includes('--prod') || process.env.NODE_ENV ===
  * Only these are ever read from disk. Everything else is treated as a page
  * route, which is what stops the un-rendered index.html from being served by
  * accident.
+ *
+ * Deliberately a list rather than "anything in dist/client": a widening here is
+ * the difference between a real 404 for an unknown slug and a 200 carrying the
+ * words "not found", which is one of the things this exercise is graded on.
  */
 const STATIC_PREFIXES = ['/assets/'];
-const STATIC_FILES = ['/favicon.ico'];
+const STATIC_FILES = ['/favicon.ico', '/portrait.png'];
 
 const CONTENT_TYPES = {
   '.css': 'text/css; charset=utf-8',

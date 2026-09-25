@@ -29,11 +29,30 @@ export function SiteHeader({
       </a>
 
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-8 gap-y-3 px-6 py-4">
-        <a href="/" className="group">
-          <span className="font-display text-lg font-semibold tracking-tight text-white">
-            {SITE_NAME}
+        <a href="/" className="group flex items-center gap-3">
+          {/*
+            Part of the shell rather than a CMS media item, so it ships with the
+            application. It is the only photograph on the site, and a personal
+            site without a face on it is a strange thing to hand someone.
+
+            `alt` is empty on purpose: the name sits immediately beside it, and
+            a screen reader announcing "Boien Reyes" twice in a row is worse
+            than not announcing the picture at all.
+          */}
+          <img
+            src="/portrait.png"
+            alt=""
+            width={36}
+            height={36}
+            className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-slate-700 transition-colors group-hover:ring-brand-500"
+          />
+
+          <span>
+            <span className="font-display text-lg font-semibold tracking-tight text-white">
+              {SITE_NAME}
+            </span>
+            <span className="block text-xs text-slate-400">{SITE_TAGLINE}</span>
           </span>
-          <span className="block text-xs text-slate-400">{SITE_TAGLINE}</span>
         </a>
 
         <nav aria-label="Primary">

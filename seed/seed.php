@@ -16,10 +16,10 @@
  * WHY GENERATE IMAGES INSTEAD OF SHIPPING THEM
  * --------------------------------------------
  * Binary assets in a repository are awkward to review and easy to end up
- * shipping by accident. These are flat gradients drawn with GD, which costs
- * nothing, needs no licence, and keeps the repository free of binaries. Swap
- * them for real photographs by importing media in wp-admin; nothing in the
- * parser or the front end cares where the image came from.
+ * shipping by accident. These are composed with GD, which costs nothing, needs
+ * no licence, and keeps the repository free of binaries. Swap them for real
+ * photographs by importing media in wp-admin; nothing in the parser or the
+ * front end cares where the image came from.
  *
  * @package HeadlessBlocks
  */
@@ -101,15 +101,70 @@ function seed_remove_default_content(): void {
  * Images
  * ---------------------------------------------------------------------- */
 
+/** Pull a colour towards black, for building a base out of the dark end. */
+function seed_shade(array $rgb, float $factor): array {
+    return [
+        (int) round($rgb[0] * $factor),
+        (int) round($rgb[1] * $factor),
+        (int) round($rgb[2] * $factor),
+    ];
+}
+
+/** Straight-line mix between two colours: 0 gives the first, 1 gives the second. */
+function seed_mix(array $a, array $b, float $t): array {
+    return [
+        (int) round($a[0] + ($b[0] - $a[0]) * $t),
+        (int) round($a[1] + ($b[1] - $a[1]) * $t),
+        (int) round($a[2] + ($b[2] - $a[2]) * $t),
+    ];
+}
+
 /**
- * Draw a placeholder image and register it in the media library.
+ * Draw an image and register it in the media library.
  *
- * @param array{0:int,1:int,2:int} $from Top colour, RGB 0-255.
- * @param array{0:int,1:int,2:int} $to   Bottom colour, RGB 0-255.
+ * WHAT THESE ARE
+ * --------------
+ * Composed abstract images, drawn rather than shipped. Binary assets in a
+ * repository are awkward to review and easy to end up committing by accident,
+ * so these cost nothing, need no licence, and keep the tree free of binaries.
+ * Swapping them for real photographs is a matter of importing media in
+ * wp-admin; nothing in the parser or the front end cares where a picture came
+ * from. See the note on photographs in the README.
+ *
+ * HOW THEY ARE BUILT
+ * ------------------
+ * Four passes, because a flat two-stop gradient reads as a failed image load,
+ * which is the opposite of what an image should do.
+ *
+ *   1. A dark base, taken from the dark end of the palette and pushed further
+ *      down, so there is room for the lights to read.
+ *   2. Three lights. Each is the same faint alpha drawn 36 times at shrinking
+ *      radii: a pixel near the middle sits under most of the rings and a pixel
+ *      near the rim under few, so the accumulation itself is the falloff.
+ *      That gives a smooth radial gradient without a per-pixel brush, which GD
+ *      does not have. The lights are off-centre and different sizes, because
+ *      one centred light is a spotlight and three in a row is a pattern.
+ *   3. A motif over the top at full size, so it stays crisp against the haze
+ *      underneath and the image has structure rather than only glow.
+ *   4. Grain and a top-and-bottom fade. Grain because large smooth dark areas
+ *      band on cheap panels, the fade because a cover image carries text over
+ *      its middle.
+ *
+ * The lights are laid out at half size and scaled up. GD's gaussian blur is a
+ * small kernel that would need dozens of passes to soften a full-size image;
+ * resampling does it in one and costs less.
+ *
+ * Deterministic: the random seed comes from the filename, so a clone produces
+ * the same pictures every time and rebuilding the demo content never shuffles
+ * the site's appearance.
+ *
+ * @param array{0:int,1:int,2:int} $from  Dark end of the palette, RGB 0-255.
+ * @param array{0:int,1:int,2:int} $to    Bright end of the palette, RGB 0-255.
+ * @param 'arcs'|'rings'|'grid'|'waves' $motif Drawn over the lights.
  *
  * @return array{id: int, url: string, alt: string}
  */
-function seed_image(string $filename, string $alt, array $from, array $to, int $width, int $height): array {
+function seed_image(string $filename, string $alt, array $from, array $to, int $width, int $height, string $motif = 'arcs'): array {
     $uploads = wp_upload_dir();
 
     if (!empty($uploads['error'])) {
@@ -118,31 +173,142 @@ function seed_image(string $filename, string $alt, array $from, array $to, int $
 
     $path = $uploads['path'] . '/' . $filename;
 
-    $image = imagecreatetruecolor($width, $height);
+    // Deterministic per file, so the same clone draws the same picture.
+    mt_srand((int) crc32($filename));
 
-    // Vertical gradient, drawn one scanline at a time. Slow but obvious, and
-    // these run once.
-    for ($y = 0; $y < $height; $y++) {
-        $ratio = $height > 1 ? $y / ($height - 1) : 0.0;
+    /* -- Passes 1 and 2: base and lights, at half size ---------------------- */
 
-        $colour = imagecolorallocate(
-            $image,
-            (int) round($from[0] + ($to[0] - $from[0]) * $ratio),
-            (int) round($from[1] + ($to[1] - $from[1]) * $ratio),
-            (int) round($from[2] + ($to[2] - $from[2]) * $ratio)
+    $half_w = max(32, intdiv($width, 2));
+    $half_h = max(32, intdiv($height, 2));
+
+    $wash = imagecreatetruecolor($half_w, $half_h);
+    imagealphablending($wash, true);
+
+    $base = seed_shade($from, 0.45);
+    imagefilledrectangle($wash, 0, 0, $half_w, $half_h, imagecolorallocate($wash, $base[0], $base[1], $base[2]));
+
+    $lights = [
+        ['x' => 0.74, 'y' => 0.20, 'r' => 0.66, 'squash' => 0.92, 'colour' => seed_mix($to, [255, 255, 255], 0.16), 'opacity' => 0.0220],
+        ['x' => 0.14, 'y' => 0.80, 'r' => 0.54, 'squash' => 1.05, 'colour' => $to, 'opacity' => 0.0170],
+        ['x' => 0.50, 'y' => 0.52, 'r' => 0.30, 'squash' => 1.15, 'colour' => seed_mix($to, [255, 255, 255], 0.45), 'opacity' => 0.0120],
+    ];
+
+    $min = min($half_w, $half_h);
+    $rings = 36;
+
+    foreach ($lights as $light) {
+        $radius = max(2, (int) round($min * $light['r']));
+        $colour = imagecolorallocatealpha(
+            $wash,
+            $light['colour'][0],
+            $light['colour'][1],
+            $light['colour'][2],
+            (int) round(127 * (1 - $light['opacity']))
         );
 
-        imageline($image, 0, $y, $width, $y, $colour);
+        for ($ring = $rings; $ring > 0; $ring--) {
+            $r = (int) round($radius * $ring / $rings);
+
+            imagefilledellipse(
+                $wash,
+                (int) round($half_w * $light['x']),
+                (int) round($half_h * $light['y']),
+                $r * 2,
+                (int) round($r * 2 * $light['squash']),
+                $colour
+            );
+        }
     }
 
-    // Two soft translucent discs, so the placeholder reads as a deliberate
-    // graphic rather than a failed image load.
-    $glow = imagecolorallocatealpha($image, 255, 255, 255, 116);
-    imagefilledellipse($image, (int) ($width * 0.72), (int) ($height * 0.28), (int) ($width * 0.55), (int) ($height * 0.75), $glow);
-    $glow_2 = imagecolorallocatealpha($image, 255, 255, 255, 122);
-    imagefilledellipse($image, (int) ($width * 0.18), (int) ($height * 0.82), (int) ($width * 0.42), (int) ($height * 0.62), $glow_2);
+    $image = imagecreatetruecolor($width, $height);
+    imagealphablending($image, true);
+    imagecopyresampled($image, $wash, 0, 0, 0, 0, $width, $height, $half_w, $half_h);
+    imagedestroy($wash);
 
-    imagejpeg($image, $path, 85);
+    /* -- Pass 3: the motif ------------------------------------------------- */
+
+    $ink = imagecolorallocatealpha($image, 255, 255, 255, 112);
+    imagesetthickness($image, max(1, (int) round(min($width, $height) / 400)));
+
+    switch ($motif) {
+        case 'rings':
+            foreach ([[0.22, 0.30, 0.10], [0.63, 0.68, 0.17], [0.86, 0.24, 0.07], [0.38, 0.86, 0.12]] as [$sx, $sy, $sr]) {
+                $r = (int) round(min($width, $height) * $sr);
+                imageellipse($image, (int) round($width * $sx), (int) round($height * $sy), $r * 2, $r * 2, $ink);
+            }
+            break;
+
+        case 'grid':
+            $gap_x = max(8, (int) round($width / 18));
+            $gap_y = max(8, (int) round($height / 10));
+
+            for ($x = $gap_x; $x < $width; $x += $gap_x) {
+                imageline($image, $x, 0, $x, $height, $ink);
+            }
+
+            for ($y = $gap_y; $y < $height; $y += $gap_y) {
+                imageline($image, 0, $y, $width, $y, $ink);
+            }
+            break;
+
+        case 'waves':
+            for ($line = 0; $line < 5; $line++) {
+                $middle = $height * (0.26 + 0.13 * $line);
+                $amplitude = $height * 0.055;
+                $previous = null;
+
+                for ($x = 0; $x <= $width; $x += 6) {
+                    $y = (int) round($middle + sin(($x / $width) * M_PI * 2.2 + $line * 0.7) * $amplitude);
+
+                    if ($previous !== null) {
+                        imageline($image, $previous[0], $previous[1], $x, $y, $ink);
+                    }
+
+                    $previous = [$x, $y];
+                }
+            }
+            break;
+
+        case 'arcs':
+        default:
+            $cx = (int) round($width * 0.88);
+            $cy = (int) round($height * 0.94);
+            $span = (int) round(max($width, $height) * 1.05);
+            $step = max(6, (int) round($span / 14));
+
+            for ($r = $step; $r <= $span; $r += $step) {
+                imagearc($image, $cx, $cy, $r * 2, $r * 2, 175, 355, $ink);
+            }
+            break;
+    }
+
+    /* -- Pass 4: grain and fade ------------------------------------------- */
+
+    $grain_dark = imagecolorallocatealpha($image, 0, 0, 0, 116);
+    $grain_light = imagecolorallocatealpha($image, 255, 255, 255, 120);
+    $dots = (int) ($width * $height / 30);
+
+    for ($i = 0; $i < $dots; $i++) {
+        imagesetpixel(
+            $image,
+            mt_rand(0, $width - 1),
+            mt_rand(0, $height - 1),
+            mt_rand(0, 1) === 0 ? $grain_dark : $grain_light
+        );
+    }
+
+    $fade = max(1, (int) round($height * 0.30));
+
+    for ($y = 0; $y < $fade; $y++) {
+        // Opaque at the edge, gone by the time the fade ends.
+        $t = $y / $fade;
+        $line = imagecolorallocatealpha($image, 0, 0, 0, (int) round(127 * (1 - (1 - $t) * 0.35)));
+
+        imageline($image, 0, $y, $width, $y, $line);
+        imageline($image, 0, $height - 1 - $y, $width, $height - 1 - $y, $line);
+    }
+
+    imagejpeg($image, $path, 84);
     imagedestroy($image);
 
     $check = wp_check_filetype($filename);
@@ -441,9 +607,9 @@ update_option('blogdescription', 'IT operations and web development, remote from
 update_option('permalink_structure', '/%postname%/');
 flush_rewrite_rules(false);
 
-$hero_image  = seed_image('seed-hero.jpg', 'Abstract gradient, navy to blue', [8, 14, 30], [37, 99, 235], 1600, 900);
-$about_image = seed_image('seed-about.jpg', 'Abstract gradient, slate to teal', [15, 32, 45], [13, 148, 136], 1200, 900);
-$work_image  = seed_image('seed-work.jpg', 'Abstract gradient, deep indigo to cyan', [12, 22, 52], [56, 189, 248], 1200, 900);
+$hero_image  = seed_image('seed-hero.jpg', 'Abstract artwork, navy to blue', [8, 14, 30], [37, 99, 235], 1600, 900, 'arcs');
+$about_image = seed_image('seed-about.jpg', 'Abstract artwork, slate to teal', [15, 32, 45], [13, 148, 136], 1200, 900, 'rings');
+$work_image  = seed_image('seed-work.jpg', 'Abstract artwork, deep indigo to cyan', [12, 22, 52], [56, 189, 248], 1200, 900, 'grid');
 
 $home_id = seed_page('home', 'Home', implode("\n\n", [
     block_cover(
@@ -556,9 +722,9 @@ $contact_id = seed_page('contact', 'Contact', implode("\n\n", [
  * ---------------------------------------------------------------------- */
 
 $post_covers = [
-    seed_image('seed-post-1.jpg', 'Abstract gradient, indigo', [24, 16, 58], [99, 102, 241], 1200, 800),
-    seed_image('seed-post-2.jpg', 'Abstract gradient, emerald', [10, 40, 34], [16, 185, 129], 1200, 800),
-    seed_image('seed-post-3.jpg', 'Abstract gradient, amber', [52, 32, 8], [245, 158, 11], 1200, 800),
+    seed_image('seed-post-1.jpg', 'Abstract artwork, indigo', [24, 16, 58], [99, 102, 241], 1200, 800, 'waves'),
+    seed_image('seed-post-2.jpg', 'Abstract artwork, emerald', [10, 40, 34], [16, 185, 129], 1200, 800, 'rings'),
+    seed_image('seed-post-3.jpg', 'Abstract artwork, amber', [52, 32, 8], [245, 158, 11], 1200, 800, 'arcs'),
 ];
 
 seed_post(
@@ -631,9 +797,9 @@ seed_post(
  * crop.
  */
 $service_images = [
-    'builds'   => seed_image('seed-service-builds.jpg', 'Abstract gradient, rose', [46, 16, 32], [244, 114, 182], 1200, 750),
-    'headless' => seed_image('seed-service-headless.jpg', 'Abstract gradient, violet', [30, 18, 60], [139, 92, 246], 1200, 750),
-    'ops'      => seed_image('seed-service-ops.jpg', 'Abstract gradient, teal to emerald', [8, 38, 40], [16, 185, 129], 1200, 750),
+    'builds'   => seed_image('seed-service-builds.jpg', 'Abstract artwork, rose', [46, 16, 32], [244, 114, 182], 1200, 750, 'grid'),
+    'headless' => seed_image('seed-service-headless.jpg', 'Abstract artwork, violet', [30, 18, 60], [139, 92, 246], 1200, 750, 'arcs'),
+    'ops'      => seed_image('seed-service-ops.jpg', 'Abstract artwork, teal to emerald', [8, 38, 40], [16, 185, 129], 1200, 750, 'rings'),
 ];
 
 seed_service(
