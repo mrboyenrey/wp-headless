@@ -86,8 +86,8 @@ codespace on main**. The devcontainer runs `.devcontainer/setup.sh` for you.
 | phpMyAdmin | http://localhost:8081 | `root` / `root` |
 
 WordPress's own front end is closed. Opening <http://localhost:8080> redirects to
-the application, so the active WordPress theme is never served to a browser -
-only `/wp-admin`, `/graphql` and uploaded files remain reachable on that port.
+the application, so the active WordPress theme is never served to a browser.
+Only `/wp-admin`, `/graphql` and uploaded files remain reachable on that port.
 See `wp-plugins/headless-redirect/`.
 
 The credentials are throwaway values for a container bound to localhost. They
