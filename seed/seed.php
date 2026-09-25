@@ -868,5 +868,5 @@ seed_menu([
 update_option('show_on_front', 'page');
 update_option('page_on_front', $home_id);
 
-WP_CLI::success('Seeded 4 pages, 3 posts, 3 services and the navigation menu.');
+WP_CLI::success('Seeded 3 pages, 3 posts, 3 services and the navigation menu.');
 WP_CLI::log(sprintf('Page ids - home: %d, about: %d, contact: %d', $home_id, $about_id, $contact_id));
