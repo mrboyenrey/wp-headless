@@ -427,7 +427,7 @@ seed_purge();
 seed_remove_default_content();
 
 update_option('blogname', 'Boien Reyes');
-update_option('blogdescription', 'A headless WordPress site rendered by React');
+update_option('blogdescription', 'IT operations and web development, remote from the Philippines');
 
 /*
  * Pretty permalinks.
@@ -443,42 +443,99 @@ flush_rewrite_rules(false);
 
 $hero_image  = seed_image('seed-hero.jpg', 'Abstract gradient, navy to blue', [8, 14, 30], [37, 99, 235], 1600, 900);
 $about_image = seed_image('seed-about.jpg', 'Abstract gradient, slate to teal', [15, 32, 45], [13, 148, 136], 1200, 900);
+$work_image  = seed_image('seed-work.jpg', 'Abstract gradient, deep indigo to cyan', [12, 22, 52], [56, 189, 248], 1200, 900);
 
 $home_id = seed_page('home', 'Home', implode("\n\n", [
-    block_cover('Boien Reyes', 'Web developer, IT operations, and automation.', $hero_image, 62),
+    block_cover(
+        'Boien Reyes',
+        'IT operations and web development, working remotely from the Philippines.',
+        $hero_image,
+        62
+    ),
     block_paragraph(
-        'This page is assembled in WordPress and rendered by a React application. '
-        . 'Nothing below was written by a developer: an editor picked these blocks from the standard '
-        . 'block library, and the front end turned them into typed components.'
+        'I build websites and I look after the servers they run on. That is an unusual pair of '
+        . 'things to claim in one sentence, and it is the reason clients keep hiring me for both: '
+        . 'the person who writes the front end is also the person who gets called when the '
+        . 'database fills up at the weekend. Ten years of that work has been remote, for teams in '
+        . 'Australia, the United States and Canada.'
+    ),
+    block_heading('What I work on'),
+    block_paragraph(
+        'Most of it is WordPress: custom builds, block libraries, and the admin experience around '
+        . 'them. The rest is the part that WordPress does not cover, which is everything between '
+        . 'the repository and a page someone can actually load.'
+    ),
+    block_media_text(
+        $work_image,
+        'Two halves of the same job',
+        'On the web side: WordPress builds, block libraries shaped around how an editorial team '
+        . 'already works, and React and TypeScript front ends that read the CMS over GraphQL. On '
+        . 'the operations side: Linux servers, DNS and TLS, Proxmox, backups that have actually '
+        . 'been restored rather than merely scheduled, and the automation that removes a manual '
+        . 'step nobody should still be doing by hand.',
+        'left'
+    ),
+    block_paragraph(
+        'Everything below was written by an editor rather than a developer. These blocks came out '
+        . 'of the standard WordPress block library, and the page you are reading was assembled from '
+        . 'them and rendered on the server.'
     ),
     block_media_text(
         $about_image,
         'What this demonstrates',
-        'WordPress stores the content, a small plugin restates it as a typed GraphQL union, '
-        . 'and the React front end maps each type to exactly one component. Add a block in the '
-        . 'editor and it appears here with no deploy.',
-        'left'
+        'WordPress stores the content, a small plugin restates it as a typed GraphQL union, and '
+        . 'the React front end maps each type to exactly one component. Add a block in the editor '
+        . 'and it appears here with no deploy.',
+        'right'
     ),
     block_buttons('Get in touch', '/contact'),
     block_unsupported_list(),
-]), 'A personal site where WordPress holds the content and a server-rendered React application draws it.');
+]), 'IT operations and web development from the Philippines, for teams in Australia, the United States and Canada.');
 
 $about_id = seed_page('about', 'About', implode("\n\n", [
-    block_cover('About', 'Who is behind this, in the briefest possible terms.', $hero_image, 70),
+    block_cover(
+        'About',
+        'Ten years of building sites, and being the one who keeps them up.',
+        $hero_image,
+        70
+    ),
     block_paragraph(
-        'A short page, included mainly to prove that publishing is not a developer task. '
-        . 'Creating this page meant filling in a title and clicking publish.'
+        'I am Boien Reyes. I started out assembling computers and wiring up small office networks, '
+        . 'moved into front-end development and design through years of freelancing, and then spent '
+        . 'most of the decade after that as the web person inside companies that needed one of '
+        . 'everything. The through-line is that I have rarely been only the developer or only the '
+        . 'person on call. Most of my roles have been both at once, which is why the two halves of '
+        . 'this page are not really two pages.'
+    ),
+    block_heading('How I got here'),
+    block_paragraph(
+        'A Computer Science degree from Cebu Institute of Technology University, then remote work '
+        . 'for teams in Australia, the United States and Canada: Festoon House, Frazer Consultants '
+        . 'and RuveneCo, plus Creen Business Management Services closer to home. Each one added a '
+        . 'layer, from marketing pages to booking systems to the infrastructure underneath them. '
+        . 'The stack grew the same way: PHP and WordPress first, then JavaScript and React, then '
+        . 'Docker and the deployment scripts that put it all somewhere other than my laptop.'
     ),
     block_media_text(
-        $about_image,
-        'On the seam between the two systems',
-        'The interesting part of this exercise is not the blocks themselves but the contract '
-        . 'between them: how a block chosen in the editor becomes a component with the right props, '
-        . 'and what happens when the content stops matching that contract.',
+        $work_image,
+        'Why the operations half matters',
+        'A website is a promise that it will still be there tomorrow, and that promise is kept by '
+        . 'backups, monitoring, and knowing which cron job to look at first. I have restored a '
+        . 'production site from a backup at an hour I would rather not name, and it permanently '
+        . 'changed how carefully I write things.',
         'right'
     ),
+    block_heading('On the seam between the two systems'),
+    block_paragraph(
+        'The interesting part of a project like this one is not the blocks themselves but the '
+        . 'contract between them: how a block chosen in an editor becomes a component with the '
+        . 'right props, and what happens when the content stops matching that contract. That seam '
+        . 'tends to fail quietly rather than loudly, which is the argument for building tools that '
+        . 'report the mismatch instead of tools that hide it.'
+    ),
     '<!-- wp:quote -->' . "\n" . '<blockquote class="wp-block-quote"><p>The front end should not have to guess what it is being given.</p></blockquote>' . "\n" . '<!-- /wp:quote -->',
-]), 'Who is behind this, in the briefest possible terms.');
+    block_buttons('Get in touch', '/contact'),
+]), 'IT operations and web development, remotely, for teams that need both halves of the job done by one person.');
 
 $contact_id = seed_page('contact', 'Contact', implode("\n\n", [
     block_cover('Contact', 'Say hello.', $hero_image, 74),
