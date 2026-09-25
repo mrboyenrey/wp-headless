@@ -80,6 +80,20 @@ export const imageTextBlockSchema = z.object({
   image: blockImageSchema.nullable(),
 });
 
+/**
+ * A standalone heading.
+ *
+ * `level` is narrowed to the six values HTML actually has, so the component
+ * picks a tag without needing a fallback branch. `html` holds only the inline
+ * markup: the wrapper tag is the component's decision, which is what stops the
+ * heading being nested inside a second heading.
+ */
+export const headingBlockSchema = z.object({
+  __typename: z.literal('HeadingBlock'),
+  level: z.number().int().min(1).max(6),
+  html: z.string().min(1),
+});
+
 /** A call-to-action button. */
 export const callToActionBlockSchema = z.object({
   __typename: z.literal('CallToActionBlock'),
@@ -95,6 +109,7 @@ export const callToActionBlockSchema = z.object({
  */
 export const blockSchema = z.discriminatedUnion('__typename', [
   heroBlockSchema,
+  headingBlockSchema,
   richTextBlockSchema,
   imageTextBlockSchema,
   callToActionBlockSchema,

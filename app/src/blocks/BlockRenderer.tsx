@@ -1,5 +1,6 @@
 import type { Block } from './schema';
 import { CallToAction } from './CallToAction';
+import { Heading } from './Heading';
 import { Hero } from './Hero';
 import { ImageText } from './ImageText';
 import { RichText } from './RichText';
@@ -31,6 +32,9 @@ export function BlockRenderer({ block }: { block: Block }) {
 
     case 'CallToActionBlock':
       return <CallToAction block={block} />;
+
+    case 'HeadingBlock':
+      return <Heading block={block} />;
 
     default: {
       // Assigning to `never` is what performs the exhaustiveness check: if any

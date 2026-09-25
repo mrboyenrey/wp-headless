@@ -137,6 +137,20 @@ final class Schema {
                 ],
             ],
         ]);
+
+        register_graphql_object_type('HeadingBlock', [
+            'description' => __('A standalone heading.', 'headless-blocks'),
+            'fields'      => [
+                'level' => [
+                    'type'        => 'Int',
+                    'description' => __('Heading level, 1-6, from the block settings.', 'headless-blocks'),
+                ],
+                'html'  => [
+                    'type'        => 'String',
+                    'description' => __('Heading text and inline markup, without the wrapper tag.', 'headless-blocks'),
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -154,6 +168,7 @@ final class Schema {
                 'RichTextBlock',
                 'ImageTextBlock',
                 'CallToActionBlock',
+                'HeadingBlock',
             ],
             /**
              * The parser tags every block with the GraphQL type it should be

@@ -37,6 +37,7 @@ final class Block_Parser {
      */
     private const HANDLERS = [
         'core/cover'      => 'parse_hero',
+        'core/heading'    => 'parse_heading',
         'core/paragraph'  => 'parse_rich_text',
         'core/media-text' => 'parse_image_text',
         'core/buttons'    => 'parse_call_to_action',
@@ -123,6 +124,19 @@ final class Block_Parser {
     }
 
     /**
+     * The block names this front end can render.
+     *
+     * Exposed so the editor's block picker can be restricted to the same list.
+     * Deriving one from the other is what stops the two drifting: adding a
+     * parser method here makes the block insertable there, in the same edit.
+     *
+     * @return array<int, string>
+     */
+    public static function supported_block_names(): array {
+        return array_keys(self::HANDLERS);
+    }
+
+    /**
      * core/cover -> HeroBlock.
      *
      * The cover block keeps its background image in attributes but leaves the
@@ -131,7 +145,7 @@ final class Block_Parser {
      */
     private static function parse_hero(array $block): ?array {
         $attrs    = $block['attrs'] ?? [];
-        $document = self::load_html($block['innerHTML'] ?? '');
+        $document = self::load_html(self::rendered_html($block));
 
         if ($document === null) {
             return null;
@@ -177,11 +191,52 @@ final class Block_Parser {
     }
 
     /**
+     * core/heading -> HeadingBlock.
+     *
+     * The heading's words live in the rendered markup rather than in attributes,
+     * so the wrapper element is located first and only its inner HTML is kept.
+     * Keeping the wrapper would nest a second <h2> inside the one the component
+     * emits, because the front end owns the tag.
+     *
+     * The level is clamped rather than trusted: WordPress stores it as a free
+     * integer, and there is no HTML element for a level outside 1-6.
+     */
+    private static function parse_heading(array $block): ?array {
+        $attrs    = $block['attrs'] ?? [];
+        $document = self::load_html($block['innerHTML'] ?? '');
+
+        if ($document === null) {
+            return null;
+        }
+
+        $element = self::first_element($document, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+
+        if ($element === null) {
+            return null;
+        }
+
+        $html = trim(self::inner_html($document, $element));
+
+        // A heading with no words is not a heading.
+        if (trim(strip_tags($html)) === '') {
+            return null;
+        }
+
+        $level = isset($attrs['level']) ? (int) $attrs['level'] : 2;
+
+        return [
+            self::TYPE_KEY => 'HeadingBlock',
+            'level'        => max(1, min(6, $level)),
+            'html'         => $html,
+        ];
+    }
+
+    /**
      * core/media-text -> ImageTextBlock.
      */
     private static function parse_image_text(array $block): ?array {
         $attrs    = $block['attrs'] ?? [];
-        $document = self::load_html($block['innerHTML'] ?? '');
+        $document = self::load_html(self::rendered_html($block));
 
         if ($document === null) {
             return null;
@@ -309,6 +364,39 @@ final class Block_Parser {
      * are non-fatal: a malformed fragment yields an empty string, never an
      * exception, because a parse failure here must not take down the page.
      * ------------------------------------------------------------------ */
+
+    /**
+     * The complete rendered markup for a block, nested blocks included.
+     *
+     * `$block['innerHTML']` is not that, and the difference is the whole reason
+     * container blocks have to be read through this helper. For a block that
+     * holds other blocks, WordPress keeps the nested content in `innerBlocks`
+     * and `innerHTML` is only the markup *around* it. A media-text block
+     * authored in the editor therefore arrives looking like an empty content
+     * column, because the words live in a nested paragraph rather than in the
+     * markup - and the parser concluded there was nothing to draw.
+     *
+     * The seed content hid this: it was written as hand-rolled HTML with the
+     * heading and paragraph inline, so it exercised the one shape where
+     * `innerHTML` happens to be complete.
+     *
+     * `render_block()` is what a theme would use, so it produces the markup the
+     * block actually means. It is handed block data that has already been
+     * parsed, so nothing is re-parsed, and `parse()` memoises the result.
+     */
+    private static function rendered_html(array $block): string {
+        if (function_exists('render_block')) {
+            $html = (string) render_block($block);
+
+            if (trim($html) !== '') {
+                return $html;
+            }
+        }
+
+        // Fall back rather than fail: an empty read here is a missing section,
+        // which is worse than slightly incomplete markup.
+        return (string) ($block['innerHTML'] ?? '');
+    }
 
     /**
      * The first element matching one of the given tags.

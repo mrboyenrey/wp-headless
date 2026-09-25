@@ -64,6 +64,10 @@ const PAGE_QUERY = /* GraphQL */ `
           url
           opensInNewTab
         }
+        ... on HeadingBlock {
+          level
+          html
+        }
       }
     }
 
