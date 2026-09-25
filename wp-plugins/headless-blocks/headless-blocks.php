@@ -38,6 +38,7 @@ if (!defined('ABSPATH')) {
 
 require_once __DIR__ . '/includes/class-block-parser.php';
 require_once __DIR__ . '/includes/class-schema.php';
+require_once __DIR__ . '/includes/class-editor.php';
 
 /**
  * WPGraphQL fires this once its type registry exists, which is the only point
@@ -45,3 +46,13 @@ require_once __DIR__ . '/includes/class-schema.php';
  * WPGraphQL is deactivated the hook simply never fires and the plugin is inert.
  */
 add_action('graphql_register_types', [Schema::class, 'register_types']);
+
+/**
+ * Keep the block inserter to the blocks this front end can draw.
+ *
+ * The Content notice reports unrenderable blocks after the fact, which is a
+ * diagnostic rather than a workflow: by then the page is already published with
+ * a hole in it. This stops the situation arising, so the notice goes back to
+ * being a safety net for older content instead of a fixture of every page.
+ */
+add_filter('allowed_block_types_all', [Editor::class, 'restrict_block_picker'], 10, 2);
