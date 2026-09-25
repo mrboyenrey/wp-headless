@@ -74,7 +74,8 @@ codespace on main**. The devcontainer runs `.devcontainer/setup.sh` for you.
 | Service | Address | Credentials |
 | --- | --- | --- |
 | The site | http://localhost:3000 | — |
-| WordPress admin | http://localhost:8080/wp-admin | `admin` / `admin` |
+| WordPress admin | http://localhost:8080/wp-admin | `admin` / `admin` (administrator) |
+| WordPress admin | http://localhost:8080/wp-admin | `editor` / `editor` (editor role) |
 | GraphiQL (when logged in) | http://localhost:8080/graphql | — |
 | phpMyAdmin | http://localhost:8081 | `root` / `root` |
 
@@ -278,6 +279,33 @@ typed blocks, that is the right trade.
 
 ---
 
+## The content model
+
+| Type | Its own fields | Where it is rendered |
+| --- | --- | --- |
+| Page | title, slug, SEO description, ordered blocks | `/` and any page slug |
+| Post | title, date, excerpt, cover image, ordered blocks | the `/blog` index, then its own slug |
+| Service | title, short description, icon, optional price, image, blocks | the `/services` index, then `/services/<slug>` |
+| Menu | label plus target, ordered | the header navigation |
+
+Pages and posts come from WordPress. The Service type and the SEO description
+are registered in `wp-plugins/headless-blocks/includes/class-content-types.php`,
+as registered post meta rather than an ACF field group, so the field definitions
+live in code the front end can read rather than in a database row.
+
+**The only addresses this application invents are `/blog` and `/services`.**
+Every other route is a slug WordPress owns, resolved with `nodeByUri(uri:)`, so
+there is no list of pages anywhere in the code. The two archive paths are the
+exception because an archive has no slug to look up: WordPress is not serving
+one.
+
+The navigation is a real WordPress menu, so ordering and nesting are the
+editor's to control. A menu location is declared by the plugin because there is
+no theme to declare one, and WPGraphQL will not expose a menu that is not
+assigned to a registered location.
+
+---
+
 ## The block library
 
 | WordPress block | GraphQL type | React component | Props |
@@ -309,7 +337,8 @@ a block the front end cannot draw cannot be inserted in the first place.
 
 - `docker-compose.yml`, `.env.example` — the stack
 - `wp-plugins/headless-blocks/` — the plugin. `Block_Parser` (Gutenberg tree →
-  typed blocks), `Schema` (GraphQL types, union, fields) and `Editor` (keeps the
+  typed blocks), `Schema` (GraphQL types, union, fields), `Content_Types` (the
+  Service type, its fields and the SEO description) and `Editor` (keeps the
   block inserter to the renderable library)
 - `wp-plugins/headless-redirect/` — closes WordPress's own front end so the
   active theme is never served to a browser
@@ -317,6 +346,7 @@ a block the front end cannot draw cannot be inserted in the first place.
   drawn with GD so no binaries are committed
 - `app/server.js` — the SSR server (dev and production in one file)
 - `app/src/blocks/` — the schema, the renderer and the five components
+- `app/src/views/` — one view per route kind, plus the shared block list
 - `app/src/wp/` — the GraphQL client and the page loader
 - `app/src/entry-server.tsx`, `entry-client.tsx`, `App.tsx` — SSR plumbing
 - `app/src/components/`, `config.ts`, `index.css`, `vite.config.ts`, `tsconfig.json`
@@ -389,24 +419,28 @@ is broken" turns out to mean "I was looking at the wrong port". Fixed with the
 
 Working end to end, verified: WordPress → plugin → GraphQL union → Zod → typed
 components → SSR HTML → hydration with no console errors and no failed requests.
-Three seeded pages, five block types, unknown blocks reported, production build
-serving real server-rendered HTML.
+Four pages, three posts, three services, five block types, a WordPress-managed
+menu, unknown blocks reported, and a production build serving real
+server-rendered HTML.
+
+Routes verified: `/`, `/about`, `/contact`, `/blog`, `/services`,
+`/services/<slug>`, a post slug, and a real 404 for anything else. A service
+requested at the root (`/headless-front-ends` rather than
+`/services/headless-front-ends`) correctly 404s.
 
 Not done, in the order I would do it next:
 
-1. **Generated TypeScript types.** The schema could be introspected and
+1. **Deployment.** Everything here runs locally. Both applications still need
+   somewhere to live, and that is the largest gap between this and the brief.
+2. **Generated TypeScript types.** The schema could be introspected and
    `BlockRenderer`'s union generated from it, so the WordPress schema is the
    single source of truth rather than the Zod file mirroring it by hand.
-2. **Graceful rendering for the blocks that remain unknown.** The block inserter
-   is restricted to the renderable library, so this can now only arise from
-   content that predates that restriction. A placeholder that renders the
-   unrenderable block's own text would degrade better than omitting it.
-3. **Caching.** Every request queries WordPress. A short-lived cache keyed by
-   path — or Vite's SSG mode for pages that rarely change — removes that.
-4. **Navigation from a WordPress menu** rather than from the list of published
-   pages, so ordering and nesting are the editor's to control.
-5. **Tests.** The parser is the piece with real logic in it and the piece a test
-   would pay for: feed it block markup, assert the block payload.
+3. **Draft preview**, so an editor sees an unpublished page before it goes out.
+4. **Caching.** Every request queries WordPress. A short-lived cache keyed by
+   path, invalidated when WordPress publishes, removes that.
+5. **Tests.** The parser and the loader are the pieces with real logic in them:
+   feed the parser block markup and assert the payload, including the
+   unknown-block case.
 6. **A media proxy.** Images are served from `localhost:8080` and the app from
    `localhost:3000`; in production those would be one origin, or the image host
    would be configured as a remote pattern.

@@ -575,9 +575,20 @@ export type BlockOf&lt;T extends BlockType&gt; =
               reported as skipped.
             </li>
             <li>
-              <strong>Publishing needs no developer.</strong> A page created in WordPress appeared
-              at its own address and added itself to the navigation, with no code written and
-              nothing deployed.
+              <strong>Two content types beyond pages.</strong> Posts and services carry their own
+              fields and have index and detail views, and their bodies go through the same block
+              mapper as a page does.
+            </li>
+            <li>
+              <strong>Real status codes, and metadata from the CMS.</strong> An unknown slug is a
+              404 rather than a friendly page pretending to be one, and the title and description
+              come from the content instead of from a template.
+            </li>
+            <li>
+              <strong>Publishing needs no developer.</strong> A page or a post created in
+              WordPress appears at its own address with no code written and nothing deployed. Its
+              place in the header is the editor's too, because the navigation is a menu rather
+              than a list of pages in the code.
             </li>
           </ul>
 
@@ -647,6 +658,11 @@ export type BlockOf&lt;T extends BlockType&gt; =
                   application, so the active theme is never served
                 </li>
                 <li>
+                  A Service content type with fields of its own, and the SEO description now
+                  carried by every content type
+                </li>
+                <li>One view per route kind, and the shared block list they all render through</li>
+                <li>
                   A seeding script that generates its own placeholder images with GD, so no binaries
                   are committed
                 </li>
@@ -667,33 +683,35 @@ export type BlockOf&lt;T extends BlockType&gt; =
 
           <p class="lede lede--tight">
             Working end to end and verified: WordPress &rarr; plugin &rarr; GraphQL union &rarr;
-            Zod &rarr; typed components &rarr; server-rendered HTML &rarr; hydration. Three seeded
-            pages, five block types, unknown blocks reported, production build serving real HTML.
+            Zod &rarr; typed components &rarr; server-rendered HTML &rarr; hydration. Four pages,
+            three posts, three services, five block types, a WordPress-managed menu, and a
+            production build serving real HTML.
           </p>
 
           <p>Not done, in the order it would be done next:</p>
 
           <ol class="next">
             <li>
+              <strong>Deployment.</strong> Everything here runs locally. Both applications still
+              need somewhere to live, and that is the largest gap between this and the brief.
+            </li>
+            <li>
+              <strong>Draft preview</strong>, so an editor can see an unpublished page before it
+              goes out, rather than publishing to find out.
+            </li>
+            <li>
               <strong>Generated TypeScript types.</strong> The schema could be introspected and the
               union generated from it, so WordPress is the single source of truth rather than the
               Zod file mirroring it by hand.
             </li>
             <li>
-              <strong>Graceful rendering for unknown blocks.</strong> Currently skipped with a
-              notice; a placeholder that renders the block's text would be better for a real site.
-            </li>
-            <li>
               <strong>Caching.</strong> Every request queries WordPress. A short-lived cache keyed
-              by path, or static generation for pages that rarely change, removes that.
+              by path, invalidated when WordPress publishes, removes that.
             </li>
             <li>
-              <strong>Navigation from a WordPress menu</strong> rather than from the list of
-              published pages, so ordering and nesting belong to the editor.
-            </li>
-            <li>
-              <strong>Tests.</strong> The parser is the piece with real logic in it, and the one a
-              test would pay for: feed it block markup, assert the payload.
+              <strong>Tests.</strong> The parser and the loader are the pieces with real logic in
+              them: feed the parser block markup and assert the payload, including the
+              unknown-block case.
             </li>
             <li>
               <strong>A media proxy.</strong> Images are served from one origin and the app from
