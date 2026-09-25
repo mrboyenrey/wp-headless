@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Headless WordPress &mdash; project walkthrough</title>
+    <title>Headless WordPress | project walkthrough</title>
     <meta
       name="description"
       content="How a personal site was built with WordPress as the CMS and server-rendered React as the renderer, and how the typed seam between the two systems works."
@@ -45,7 +45,7 @@
 
           <p class="lede">
             WordPress holds the content. A server-rendered React application draws it. This is an
-            account of how the two were joined, and of the seam between them &mdash; which is the
+            account of how the two were joined, and of the seam between them, which is the
             part that mattered.
           </p>
 
@@ -69,7 +69,7 @@
       <!-- ============================================================ 02 -->
       <section class="slide" id="s02" aria-labelledby="h02">
         <div class="wrap">
-          <p class="eyebrow">01 &mdash; The brief</p>
+          <p class="eyebrow">01 &middot; The brief</p>
           <h2 id="h02">Two pieces, joined at one point</h2>
 
           <div class="cards cards--two">
@@ -91,8 +91,8 @@
           </div>
 
           <p class="note">
-            The brief named the interesting part itself: the <strong>seam</strong> between the two
-            &mdash; how a block chosen in a back office becomes a typed component with the right
+            The brief named the interesting part itself: the <strong>seam</strong> between the two,
+            how a block chosen in a back office becomes a typed component with the right
             props, and how that holds up when the content changes. Everything else in the exercise
             exists to make that seam visible.
           </p>
@@ -119,7 +119,7 @@
       <!-- ============================================================ 03 -->
       <section class="slide" id="s03" aria-labelledby="h03">
         <div class="wrap">
-          <p class="eyebrow">02 &mdash; The seam</p>
+          <p class="eyebrow">02 &middot; The seam</p>
           <h2 id="h03">Why this is the hard part</h2>
 
           <div class="split">
@@ -145,8 +145,8 @@
               <p class="pull">The translation therefore happens in WordPress, not in React.</p>
 
               <p>
-                A small plugin reads WordPress's <em>own</em> parsed block tree &mdash; the same
-                structure the block editor already understands &mdash; narrows it to the types
+                A small plugin reads WordPress's <em>own</em> parsed block tree (the same
+                structure the block editor already understands) narrows it to the types
                 this front end can draw, and republishes it as real fields.
               </p>
 
@@ -162,7 +162,7 @@
       <!-- ============================================================ 04 -->
       <section class="slide" id="s04" aria-labelledby="h04">
         <div class="wrap">
-          <p class="eyebrow">03 &mdash; Architecture</p>
+          <p class="eyebrow">03 &middot; Architecture</p>
           <h2 id="h04">Four parts</h2>
 
           <div class="cards cards--two">
@@ -225,7 +225,7 @@
       <!-- ============================================================ 05 -->
       <section class="slide" id="s05" aria-labelledby="h05">
         <div class="wrap">
-          <p class="eyebrow">04 &mdash; The path</p>
+          <p class="eyebrow">04 &middot; The path</p>
           <h2 id="h05">One block's journey</h2>
 
           <ol class="flow">
@@ -240,7 +240,7 @@
               <span class="flow__n">2</span>
               <div>
                 <strong>WordPress stores it</strong>
-                <span>As HTML with block comments, in <code>post_content</code> &mdash; exactly as it would for any theme.</span>
+                <span>As HTML with block comments, in <code>post_content</code>, exactly as it would for any theme.</span>
               </div>
             </li>
             <li>
@@ -285,7 +285,7 @@
       <!-- ============================================================ 06 -->
       <section class="slide" id="s06" aria-labelledby="h06">
         <div class="wrap">
-          <p class="eyebrow">05 &mdash; The contract</p>
+          <p class="eyebrow">05 &middot; The contract</p>
           <h2 id="h06">A GraphQL union, not one loose type</h2>
 
           <div class="split split--wide-left">
@@ -299,8 +299,8 @@
 
               <p>
                 Every renderable block is its own object type with its own fields, joined by a
-                union. The alternative &mdash; a single <code>Block</code> type with a type string
-                and every field optional &mdash; merely moves the problem to the consumer, where
+                union. The alternative (a single <code>Block</code> type with a type string
+                and every field optional) merely moves the problem to the consumer, where
                 each component must decide for itself which fields it can trust.
               </p>
 
@@ -316,7 +316,7 @@
               <ul class="rules rules--tight">
                 <li>
                   <strong>REST returns rendered HTML for content.</strong> Block structure arrives
-                  as one string, so the typed seam has to be reconstructed by scraping &mdash; the
+                  as one string, so the typed seam has to be reconstructed by scraping: the
                   problem moved to the wrong side.
                 </li>
                 <li>
@@ -345,7 +345,7 @@
       <!-- ============================================================ 07 -->
       <section class="slide" id="s07" aria-labelledby="h07">
         <div class="wrap">
-          <p class="eyebrow">06 &mdash; Types</p>
+          <p class="eyebrow">06 &middot; Types</p>
           <h2 id="h07">The data is parsed, not trusted</h2>
 
           <p class="lede lede--tight">
@@ -397,7 +397,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
       <!-- ============================================================ 08 -->
       <section class="slide" id="s08" aria-labelledby="h08">
         <div class="wrap">
-          <p class="eyebrow">07 &mdash; Extending it</p>
+          <p class="eyebrow">07 &middot; Extending it</p>
           <h2 id="h08">Adding a block type is compiler-enforced</h2>
 
           <div class="steps">
@@ -411,7 +411,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
             <article class="step">
               <span class="step__n">2</span>
               <h3>Add it to the union</h3>
-              <p>One entry in <code>blockSchema</code> &mdash; and one inline fragment in the
+              <p>One entry in <code>blockSchema</code>, plus one inline fragment in the
                 GraphQL query, without which the block arrives with no fields.</p>
             </article>
 
@@ -443,7 +443,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
       <!-- ============================================================ 09 -->
       <section class="slide" id="s09" aria-labelledby="h09">
         <div class="wrap">
-          <p class="eyebrow">08 &mdash; Failure</p>
+          <p class="eyebrow">08 &middot; Failure</p>
           <h2 id="h09">What happens when the content is wrong</h2>
 
           <p class="lede lede--tight">
@@ -494,7 +494,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
       <!-- ============================================================ 10 -->
       <section class="slide" id="s10" aria-labelledby="h10">
         <div class="wrap">
-          <p class="eyebrow">09 &mdash; Rendering</p>
+          <p class="eyebrow">09 &middot; Rendering</p>
           <h2 id="h10">Server rendering, and what it buys</h2>
 
           <div class="split">
@@ -543,13 +543,13 @@ export type BlockOf&lt;T extends BlockType&gt; =
       <!-- ============================================================ 11 -->
       <section class="slide" id="s11" aria-labelledby="h11">
         <div class="wrap">
-          <p class="eyebrow">10 &mdash; Evidence</p>
+          <p class="eyebrow">10 &middot; Evidence</p>
           <h2 id="h11">What was actually verified</h2>
 
           <ul class="checks">
             <li>
               <strong>True server rendering.</strong> 7.3&nbsp;KB of HTML containing the headline,
-              hero image, stylesheet link and embedded data &mdash; all present before any
+              hero image, stylesheet link and embedded data, all present before any
               JavaScript runs.
             </li>
             <li>
@@ -566,7 +566,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
             </li>
             <li>
               <strong>Publishing needs no developer.</strong> A page created in WordPress appeared
-              at its own address and added itself to the navigation &mdash; with no code written and
+              at its own address and added itself to the navigation, with no code written and
               nothing deployed.
             </li>
           </ul>
@@ -577,7 +577,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
               <strong>The image came back empty.</strong> Media&nbsp;&amp;&nbsp;Text stores its
               attachment as <code>mediaId</code>; Cover stores it as <code>id</code>. Reading only
               <code>id</code> silently degraded the image to a bare URL with no dimensions and no
-              alt text &mdash; it still looked plausible.
+              alt text. It still looked plausible.
             </li>
             <li>
               <strong>A heading rendered twice.</strong> The heading lives inside the content
@@ -599,7 +599,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
       <!-- ============================================================ 12 -->
       <section class="slide" id="s12" aria-labelledby="h12">
         <div class="wrap">
-          <p class="eyebrow">11 &mdash; Provenance</p>
+          <p class="eyebrow">11 &middot; Provenance</p>
           <h2 id="h12">What I wrote, and what I assembled</h2>
 
           <div class="split split--even">
@@ -611,7 +611,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
                   <code>phpmyadmin</code>, <code>wordpress:cli</code>
                 </li>
                 <li>
-                  <strong>WPGraphQL 2.23</strong> &mdash; free plugin, provides the endpoint and
+                  <strong>WPGraphQL 2.23</strong>, free plugin, provides the endpoint and
                   type registry this project extends
                 </li>
                 <li>React 19.3, Vite 8.3, Tailwind 4.3, Zod 4.6, TypeScript 7.0</li>
@@ -629,18 +629,18 @@ export type BlockOf&lt;T extends BlockType&gt; =
               <ul class="rules rules--tight">
                 <li>The Compose stack and its environment file</li>
                 <li>
-                  <code>headless-blocks</code> &mdash; the parser, the GraphQL schema and the
+                  <code>headless-blocks</code>: the parser, the GraphQL schema and the
                   editor constraint
                 </li>
                 <li>
-                  <code>headless-redirect</code> &mdash; sends WordPress's own front end to the
+                  <code>headless-redirect</code>: sends WordPress's own front end to the
                   application, so the active theme is never served
                 </li>
                 <li>
                   A seeding script that generates its own placeholder images with GD, so no binaries
                   are committed
                 </li>
-                <li>The SSR server &mdash; development and production in one file, no framework</li>
+                <li>The SSR server: development and production in one file, no framework</li>
                 <li>The block schema, renderer and five components</li>
                 <li>The GraphQL client, page loader, layout, entries and configuration</li>
               </ul>
@@ -652,7 +652,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
       <!-- ============================================================ 13 -->
       <section class="slide" id="s13" aria-labelledby="h13">
         <div class="wrap">
-          <p class="eyebrow">12 &mdash; Honesty</p>
+          <p class="eyebrow">12 &middot; Honesty</p>
           <h2 id="h13">Where it stopped</h2>
 
           <p class="lede lede--tight">
@@ -696,11 +696,11 @@ export type BlockOf&lt;T extends BlockType&gt; =
       <!-- ============================================================ 14 -->
       <section class="slide slide--end" id="s14" aria-labelledby="h14">
         <div class="wrap">
-          <p class="eyebrow">13 &mdash; Reproducing it</p>
+          <p class="eyebrow">13 &middot; Reproducing it</p>
           <h2 id="h14">Running it</h2>
 
           <p class="lede lede--tight">
-            Requirement: Docker Desktop. Nothing else &mdash; no Node, no PHP, no MySQL.
+            Requirement: Docker Desktop. Nothing else: no Node, no PHP, no MySQL.
           </p>
 
           <pre><code># One command does the lot: containers, WordPress, plugins, content, build
@@ -726,7 +726,7 @@ docker compose run --rm wpcli eval-file /seed/seed.php</code></pre>
             not secrets, and they are not for anything else.
           </p>
 
-          <p class="thanks">Thank you &mdash; questions welcome.</p>
+          <p class="thanks">Thank you. Questions welcome.</p>
         </div>
       </section>
     </main>
