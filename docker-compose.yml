@@ -48,6 +48,10 @@ services:
         define('WP_HOME', '${WP_URL}');
         define('WP_SITEURL', '${WP_URL}');
         define('WP_ENVIRONMENT_TYPE', 'local');
+        // Where the headless front end lives. The headless-redirect plugin
+        // sends WordPress's own front end here, so the active theme is never
+        // served to a browser. Keep in step with APP_PORT below.
+        define('HEADLESS_FRONTEND_URL', '${APP_URL}');
     healthcheck:
       # PHP is guaranteed to be present in this image; wget and curl are not.
       # This only reports that Apache is listening, which is all the app
@@ -59,9 +63,11 @@ services:
       start_period: 20s
     volumes:
       - wp_data:/var/www/html
-      # Our custom plugin is bind-mounted rather than baked into the image,
+      # Our custom plugins are bind-mounted rather than baked into the image,
       # so editing PHP here is picked up immediately with no rebuild.
       - ./wp-plugins/headless-blocks:/var/www/html/wp-content/plugins/headless-blocks
+      # Closes WordPress's own front end so the active theme is never served.
+      - ./wp-plugins/headless-redirect:/var/www/html/wp-content/plugins/headless-redirect
     networks: [wpnet]
 
   app:
@@ -127,6 +133,7 @@ services:
     volumes:
       - wp_data:/var/www/html
       - ./wp-plugins/headless-blocks:/var/www/html/wp-content/plugins/headless-blocks
+      - ./wp-plugins/headless-redirect:/var/www/html/wp-content/plugins/headless-redirect
       # Read-only access to the seed script, so demo content can be rebuilt
       # from source with `wp eval-file /seed/seed.php`.
       - ./seed:/seed:ro

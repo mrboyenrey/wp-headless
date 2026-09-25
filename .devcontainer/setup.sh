@@ -21,6 +21,11 @@
 #
 # So WP_URL is set to the forwarded https address before WordPress is
 # installed, and the install and the seed content inherit it.
+#
+# APP_URL needs the same treatment for the same reason. WordPress redirects its
+# own front end to the application (see the headless-redirect plugin), so if
+# APP_URL stayed http://localhost:3000 a Codespace visitor following that
+# redirect would be sent to a port on their own machine.
 
 set -euo pipefail
 
@@ -37,9 +42,11 @@ cd "$(dirname "$0")/.."
 # Codespaces sets both of these. Anywhere else they are absent and we fall back.
 if [ -n "${CODESPACE_NAME:-}" ] && [ -n "${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-}" ]; then
   WP_URL="https://${CODESPACE_NAME}-8080.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+  APP_URL="https://${CODESPACE_NAME}-3000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
   echo "Codespace detected - WordPress will publish at ${WP_URL}"
 else
   WP_URL="http://localhost:8080"
+  APP_URL="http://localhost:3000"
   echo "No Codespace detected - using ${WP_URL}"
 fi
 
@@ -52,6 +59,12 @@ if grep -q '^WP_URL=' .env; then
   sed -i "s|^WP_URL=.*|WP_URL=${WP_URL}|" .env
 else
   echo "WP_URL=${WP_URL}" >> .env
+fi
+
+if grep -q '^APP_URL=' .env; then
+  sed -i "s|^APP_URL=.*|APP_URL=${APP_URL}|" .env
+else
+  echo "APP_URL=${APP_URL}" >> .env
 fi
 
 echo "Starting containers and building the application image..."
@@ -89,6 +102,8 @@ fi
 echo "Installing plugins..."
 docker compose run --rm wpcli plugin install wp-graphql --activate
 docker compose run --rm wpcli plugin activate headless-blocks
+# Closes WordPress's own front end so the active theme is never served.
+docker compose run --rm wpcli plugin activate headless-redirect
 
 echo "Seeding demo content..."
 docker compose run --rm wpcli eval-file /seed/seed.php
