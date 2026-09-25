@@ -26,13 +26,14 @@
       <a href="#s05" data-label="A block's journey">05</a>
       <a href="#s06" data-label="The API contract">06</a>
       <a href="#s07" data-label="Typing the seam">07</a>
-      <a href="#s08" data-label="Adding a block">08</a>
-      <a href="#s09" data-label="When content breaks">09</a>
-      <a href="#s10" data-label="Server rendering">10</a>
-      <a href="#s11" data-label="What was verified">11</a>
-      <a href="#s12" data-label="Written vs assembled">12</a>
-      <a href="#s13" data-label="Where it stopped">13</a>
-      <a href="#s14" data-label="Running it">14</a>
+      <a href="#s08" data-label="Content model">08</a>
+      <a href="#s09" data-label="Adding a block">09</a>
+      <a href="#s10" data-label="When content breaks">10</a>
+      <a href="#s11" data-label="Server rendering">11</a>
+      <a href="#s12" data-label="What was verified">12</a>
+      <a href="#s13" data-label="Written vs assembled">13</a>
+      <a href="#s14" data-label="Where it stopped">14</a>
+      <a href="#s15" data-label="Running it">15</a>
     </nav>
 
     <main>
@@ -398,8 +399,72 @@ export type BlockOf&lt;T extends BlockType&gt; =
       <!-- ============================================================ 08 -->
       <section class="slide" id="s08" aria-labelledby="h08">
         <div class="wrap">
-          <p class="eyebrow">07 &middot; Extending it</p>
-          <h2 id="h08">Adding a block type is compiler-enforced</h2>
+          <p class="eyebrow">07 &middot; Content model</p>
+          <h2 id="h08">Four types, one mapper</h2>
+
+          <p class="lede lede--tight">
+            The brief asks for two content types beyond pages, a menu an editor maintains, and a
+            title and description per item. Pages and posts come from WordPress itself; services
+            and the description field are declared in the plugin, because there is no theme to
+            declare them.
+          </p>
+
+          <table class="table table--wide">
+            <caption class="visually-hidden">Content types and where each is rendered</caption>
+            <thead>
+              <tr>
+                <th scope="col">Type</th>
+                <th scope="col">Its own fields</th>
+                <th scope="col">Where it is rendered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Page</td>
+                <td>title, slug, description, ordered blocks</td>
+                <td><code>/</code> and any page slug</td>
+              </tr>
+              <tr>
+                <td>Post</td>
+                <td>title, date, excerpt, cover image, ordered blocks</td>
+                <td>the <code>/blog</code> index, then its own slug</td>
+              </tr>
+              <tr>
+                <td>Service</td>
+                <td>title, short description, icon, optional price, image, blocks</td>
+                <td>the <code>/services</code> index, then <code>/services/&lt;slug&gt;</code></td>
+              </tr>
+              <tr>
+                <td>Menu</td>
+                <td>label plus target, ordered</td>
+                <td>the header</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout">
+            <p>
+              A post body is blocks, like a page, so one mapper draws both. The seam is a property
+              of the content model rather than of a template, which is why a fourth content type
+              costs a route and a view rather than a second rendering path.
+            </p>
+            <p class="note note--small">
+              <strong>The router holds no list of pages.</strong> One item is resolved with
+              <code>nodeByUri(uri:)</code>, which asks WordPress what lives at an address and
+              answers for every type at once. <code>/blog</code> and <code>/services</code> are the
+              only addresses the application invents, because an archive has no slug to look up.
+              The description is one field on every type: the explicit value when an editor set
+              one, the excerpt otherwise.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ 09 -->
+      <section class="slide" id="s09" aria-labelledby="h09">
+        <div class="wrap">
+          <p class="eyebrow">08 &middot; Extending it</p>
+          <h2 id="h09">Adding a block type is compiler-enforced</h2>
 
           <div class="steps">
             <article class="step">
@@ -441,11 +506,11 @@ export type BlockOf&lt;T extends BlockType&gt; =
         </div>
       </section>
 
-      <!-- ============================================================ 09 -->
-      <section class="slide" id="s09" aria-labelledby="h09">
+      <!-- ============================================================ 10 -->
+      <section class="slide" id="s10" aria-labelledby="h10">
         <div class="wrap">
-          <p class="eyebrow">08 &middot; Failure</p>
-          <h2 id="h09">What happens when the content is wrong</h2>
+          <p class="eyebrow">09 &middot; Failure</p>
+          <h2 id="h10">What happens when the content is wrong</h2>
 
           <p class="lede lede--tight">
             The realistic failure in a headless setup is not a crash. It is quiet omission: an
@@ -501,11 +566,11 @@ export type BlockOf&lt;T extends BlockType&gt; =
         </div>
       </section>
 
-      <!-- ============================================================ 10 -->
-      <section class="slide" id="s10" aria-labelledby="h10">
+      <!-- ============================================================ 11 -->
+      <section class="slide" id="s11" aria-labelledby="h11">
         <div class="wrap">
-          <p class="eyebrow">09 &middot; Rendering</p>
-          <h2 id="h10">Server rendering, and what it buys</h2>
+          <p class="eyebrow">10 &middot; Rendering</p>
+          <h2 id="h11">Server rendering, and what it buys</h2>
 
           <div class="split">
             <div>
@@ -550,11 +615,11 @@ export type BlockOf&lt;T extends BlockType&gt; =
         </div>
       </section>
 
-      <!-- ============================================================ 11 -->
-      <section class="slide" id="s11" aria-labelledby="h11">
+      <!-- ============================================================ 12 -->
+      <section class="slide" id="s12" aria-labelledby="h12">
         <div class="wrap">
-          <p class="eyebrow">10 &middot; Evidence</p>
-          <h2 id="h11">What was actually verified</h2>
+          <p class="eyebrow">11 &middot; Evidence</p>
+          <h2 id="h12">What was actually verified</h2>
 
           <ul class="checks">
             <li>
@@ -617,11 +682,11 @@ export type BlockOf&lt;T extends BlockType&gt; =
         </div>
       </section>
 
-      <!-- ============================================================ 12 -->
-      <section class="slide" id="s12" aria-labelledby="h12">
+      <!-- ============================================================ 13 -->
+      <section class="slide" id="s13" aria-labelledby="h13">
         <div class="wrap">
-          <p class="eyebrow">11 &middot; Provenance</p>
-          <h2 id="h12">What I wrote, and what I assembled</h2>
+          <p class="eyebrow">12 &middot; Provenance</p>
+          <h2 id="h13">What I wrote, and what I assembled</h2>
 
           <div class="split split--even">
             <div>
@@ -675,11 +740,11 @@ export type BlockOf&lt;T extends BlockType&gt; =
         </div>
       </section>
 
-      <!-- ============================================================ 13 -->
-      <section class="slide" id="s13" aria-labelledby="h13">
+      <!-- ============================================================ 14 -->
+      <section class="slide" id="s14" aria-labelledby="h14">
         <div class="wrap">
-          <p class="eyebrow">12 &middot; Honesty</p>
-          <h2 id="h13">Where it stopped</h2>
+          <p class="eyebrow">13 &middot; Honesty</p>
+          <h2 id="h14">Where it stopped</h2>
 
           <p class="lede lede--tight">
             Working end to end and verified: WordPress &rarr; plugin &rarr; GraphQL union &rarr;
@@ -721,11 +786,11 @@ export type BlockOf&lt;T extends BlockType&gt; =
         </div>
       </section>
 
-      <!-- ============================================================ 14 -->
-      <section class="slide slide--end" id="s14" aria-labelledby="h14">
+      <!-- ============================================================ 15 -->
+      <section class="slide slide--end" id="s15" aria-labelledby="h15">
         <div class="wrap">
-          <p class="eyebrow">13 &middot; Reproducing it</p>
-          <h2 id="h14">Running it</h2>
+          <p class="eyebrow">14 &middot; Reproducing it</p>
+          <h2 id="h15">Running it</h2>
 
           <p class="lede lede--tight">
             Requirement: Docker Desktop. Nothing else: no Node, no PHP, no MySQL.

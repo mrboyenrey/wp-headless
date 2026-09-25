@@ -11,7 +11,7 @@ no rebuild, no deploy.
 The interesting part is the seam between the two systems, so that is where the
 comments are and that is what the section below is about.
 
-> **Reviewing or presenting this?** `docs/` holds a self-contained 14-slide
+> **Reviewing or presenting this?** `docs/` holds a self-contained 15-slide
 > walkthrough — plain HTML and CSS, no build step and no JavaScript. Open
 > `docs/index.html` directly in a browser, or see it on GitHub Pages. It works as
 > a presentation and reads equally well as documentation on its own.
