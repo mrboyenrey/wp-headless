@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { blockImageSchema, blockSchema, type Block } from '../blocks/schema';
+import { blockSchema, type Block } from '../blocks/schema';
 import { wpQuery } from './client';
 
 /**
