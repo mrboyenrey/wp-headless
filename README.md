@@ -30,9 +30,10 @@ bash .devcontainer/setup.sh
 ```
 
 That starts all four containers, installs WordPress, activates the plugins,
-seeds the demo content and compiles the React application. It is idempotent:
-running it again rebuilds the demo content, and it skips the WordPress install
-if WordPress is already there.
+creates the administrator and editor accounts, seeds the demo content and
+compiles the React application. It is idempotent: running it again rebuilds the
+demo content, skips the WordPress install if WordPress is already there, and
+leaves an existing editor account alone.
 
 The first run takes a few minutes because the images have to download. When it
 finishes the site is already up at <http://localhost:3000> — there is nothing to
@@ -55,6 +56,11 @@ docker compose run --rm wpcli core install \
 docker compose run --rm wpcli plugin install wp-graphql --activate
 docker compose run --rm wpcli plugin activate headless-blocks
 docker compose run --rm wpcli plugin activate headless-redirect
+
+# An editor account alongside the administrator one, so the site can be handed
+# over without giving away an admin login. Skip this line if it already exists.
+docker compose run --rm wpcli user create editor editor@example.com \
+  --role=editor --display_name="Editor" --user_pass=editor
 
 # Content to look at
 docker compose run --rm wpcli eval-file /seed/seed.php

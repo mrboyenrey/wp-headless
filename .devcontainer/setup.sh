@@ -105,6 +105,22 @@ docker compose run --rm wpcli plugin activate headless-blocks
 # Closes WordPress's own front end so the active theme is never served.
 docker compose run --rm wpcli plugin activate headless-redirect
 
+# The editor account, kept separate from the administrator one.
+#
+# An editor is what the site should be handed over with, so that whoever is
+# reviewing it is not driving the site as an administrator. The README
+# documents these credentials, so a fresh clone has to actually have them.
+# Idempotent, like the rest of this script.
+echo "Ensuring the editor account exists..."
+if docker compose run --rm --no-deps wpcli user get editor > /dev/null 2>&1; then
+  echo "Editor account already exists - leaving it alone."
+else
+  docker compose run --rm --no-deps wpcli user create editor editor@example.com \
+    --role=editor \
+    --display_name="Editor" \
+    --user_pass=editor
+fi
+
 echo "Seeding demo content..."
 docker compose run --rm wpcli eval-file /seed/seed.php
 
