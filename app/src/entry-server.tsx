@@ -6,7 +6,7 @@ import { loadSiteContent, type SiteContent, type View } from './wp/queries';
 /**
  * The server entry point.
  *
- * Everything that needs the database — or the network — happens here, before a
+ * Everything that needs the database or the network happens here, before a
  * single character is sent to the browser. The result is a complete HTML
  * document, not an empty shell waiting for JavaScript. That matters for two
  * reasons beyond the obvious: the <head> is correct before anything renders

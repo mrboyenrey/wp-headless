@@ -5,14 +5,14 @@
 
 WordPress holds the content. A server-rendered React application renders it. An
 editor assembles a page by picking blocks from the standard block editor, and
-the front end turns each block into a typed component — no developer involved,
+the front end turns each block into a typed component. No developer involved,
 no rebuild, no deploy.
 
 The interesting part is the seam between the two systems, so that is where the
 comments are and that is what the section below is about.
 
 > **Reviewing or presenting this?** `docs/` holds a self-contained 15-slide
-> walkthrough — plain HTML and CSS, no build step and no JavaScript. Open
+> walkthrough: plain HTML and CSS, no build step and no JavaScript. Open
 > `docs/index.html` directly in a browser, or see it on GitHub Pages. It works as
 > a presentation and reads equally well as documentation on its own.
 
@@ -20,7 +20,7 @@ comments are and that is what the section below is about.
 
 ## Getting it running
 
-**Everything runs in Docker.** You need Docker Desktop and nothing else — no
+**Everything runs in Docker.** You need Docker Desktop and nothing else. No
 Node, no PHP, no MySQL, and no XAMPP.
 
 ### One command
@@ -36,7 +36,7 @@ demo content, skips the WordPress install if WordPress is already there, and
 leaves an existing editor account alone.
 
 The first run takes a few minutes because the images have to download. When it
-finishes the site is already up at <http://localhost:3000> — there is nothing to
+finishes the site is already up at <http://localhost:3000>. There is nothing to
 start afterwards.
 
 ### The same thing by hand
@@ -79,10 +79,10 @@ codespace on main**. The devcontainer runs `.devcontainer/setup.sh` for you.
 
 | Service | Address | Credentials |
 | --- | --- | --- |
-| The site | http://localhost:3000 | — |
+| The site | http://localhost:3000 | none |
 | WordPress admin | http://localhost:8080/wp-admin | `admin` / `admin` (administrator) |
 | WordPress admin | http://localhost:8080/wp-admin | `editor` / `editor` (editor role) |
-| GraphiQL (when logged in) | http://localhost:8080/graphql | — |
+| GraphiQL (when logged in) | http://localhost:8080/graphql | none |
 | phpMyAdmin | http://localhost:8081 | `root` / `root` |
 
 WordPress's own front end is closed. Opening <http://localhost:8080> redirects to
@@ -91,7 +91,7 @@ only `/wp-admin`, `/graphql` and uploaded files remain reachable on that port.
 See `wp-plugins/headless-redirect/`.
 
 The credentials are throwaway values for a container bound to localhost. They
-are not secrets and are not for anything else — but change them before pointing
+are not secrets and not for anything else, but change them before pointing
 a public address at this.
 
 ### The commands you will actually use
@@ -112,8 +112,8 @@ a public address at this.
 
 ### Developing with hot reloading
 
-The `app` container runs the **production** build — compiled, minified, no
-watcher — because that is what a reviewer should be looking at. To edit React
+The `app` container runs the **production** build (compiled, minified, no
+watcher) because that is what a reviewer should be looking at. To edit React
 with hot reloading, stop that container and run the app on the host instead.
 This is the only workflow that needs Node:
 
@@ -152,11 +152,11 @@ once it is containerised.
 | Symptom | Cause |
 | --- | --- |
 | `npipe ... not found` | Docker Desktop is not running |
-| `port 3000 is already in use` | An earlier dev server is still alive — stop it, or run `PORT=3001 npm run dev` |
+| `port 3000 is already in use` | An earlier dev server is still alive. Stop it, or run `PORT=3001 npm run dev` |
 | `ERR_CONNECTION_REFUSED` on :3000 | The Node server is not running. Docker being up is not enough |
 | A section is missing from a page | The content notice on the page names the block and the reason |
-| The WordPress theme is visible | `APP_URL` is not the forwarded address, so the redirect points at a dead port — re-run `.devcontainer/setup.sh` |
-| Images broken inside a Codespace | `WP_URL` is not the forwarded address — re-run `.devcontainer/setup.sh` |
+| The WordPress theme is visible | `APP_URL` is not the forwarded address, so the redirect points at a dead port. Re-run `.devcontainer/setup.sh` |
+| Images broken inside a Codespace | `WP_URL` is not the forwarded address. Re-run `.devcontainer/setup.sh` |
 | WordPress redirects to localhost | Same cause as above |
 
 ---
@@ -193,8 +193,8 @@ Four decisions in that chain are worth defending.
 A front end handed that can only either echo it or scrape it. So the plugin
 reads WordPress's own parsed block tree (`parse_blocks()`) and republishes it as
 real fields. The paragraph's words live in `innerHTML` rather than in attributes,
-which is why the parser reads a couple of values back out of the markup — it is
-the only place they exist.
+which is why the parser reads a couple of values back out of the markup, because
+that is the only place they exist.
 
 ### 2. A GraphQL union, not one loose type
 
@@ -204,8 +204,8 @@ Every renderable block is its own object type, joined by `ContentBlock`:
 union ContentBlock = HeroBlock | RichTextBlock | ImageTextBlock | CallToActionBlock
 ```
 
-The alternative — one `Block` type with a `type` string and every field optional
-— pushes the problem to the consumer, where every component has to decide which
+The alternative, one `Block` type with a `type` string and every field optional,
+pushes the problem to the consumer, where every component has to decide which
 fields it can trust. A union means the question is settled by the schema, and it
 mirrors the TypeScript union member for member.
 
@@ -272,7 +272,7 @@ it is the wrong tool here is specific rather than general:
 
 - **REST returns rendered HTML for content.** Block structure arrives as a single
   string, so the typed seam this exercise is about has to be reconstructed by
-  parsing HTML in the front end — moving the exact problem to the wrong side.
+  parsing HTML in the front end, which moves the exact problem to the wrong side.
 - **A union is expressible in GraphQL.** The contract between the two systems is
   the thing being graded, and GraphQL can state it. REST cannot.
 - **The schema is introspectable.** The front end's contract can be inspected and
@@ -330,31 +330,31 @@ a block the front end cannot draw cannot be inserted in the first place.
 
 ## What I wrote, and what I assembled
 
-**Assembled** (starters, images and plugins — none of this is mine):
+**Assembled** (starters, images and plugins, none of it mine):
 
-- `wordpress:php8.3-apache`, `mysql:8.0`, `phpmyadmin`, `wordpress:cli-php8.3` —
+- `wordpress:php8.3-apache`, `mysql:8.0`, `phpmyadmin`, `wordpress:cli-php8.3`:
   official Docker images
-- **WPGraphQL 2.23.1** — free plugin from wordpress.org, provides the GraphQL
+- **WPGraphQL 2.23.1**: free plugin from wordpress.org, provides the GraphQL
   endpoint and the type registry this project extends
 - React 19.3, Vite 8.3, Tailwind CSS 4.3, Zod 4.6, TypeScript 7.0
 - `@vitejs/plugin-react`, `@tailwindcss/vite`
 
 **Written for this exercise:**
 
-- `docker-compose.yml`, `.env.example` — the stack
-- `wp-plugins/headless-blocks/` — the plugin. `Block_Parser` (Gutenberg tree →
+- `docker-compose.yml`, `.env.example`: the stack
+- `wp-plugins/headless-blocks/`: the plugin. `Block_Parser` (Gutenberg tree →
   typed blocks), `Schema` (GraphQL types, union, fields), `Content_Types` (the
   Service type, its fields and the SEO description) and `Editor` (keeps the
   block inserter to the renderable library)
-- `wp-plugins/headless-redirect/` — closes WordPress's own front end so the
+- `wp-plugins/headless-redirect/`: closes WordPress's own front end so the
   active theme is never served to a browser
-- `seed/seed.php` — reproducible demo content, including the placeholder images
+- `seed/seed.php`: reproducible demo content, including the placeholder images
   drawn with GD so no binaries are committed
-- `app/server.js` — the SSR server (dev and production in one file)
-- `app/src/blocks/` — the schema, the renderer and the five components
-- `app/src/views/` — one view per route kind, plus the shared block list
-- `app/src/wp/` — the GraphQL client and the page loader
-- `app/src/entry-server.tsx`, `entry-client.tsx`, `App.tsx` — SSR plumbing
+- `app/server.js`: the SSR server (dev and production in one file)
+- `app/src/blocks/`: the schema, the renderer and the five components
+- `app/src/views/`: one view per route kind, plus the shared block list
+- `app/src/wp/`: the GraphQL client and the page loader
+- `app/src/entry-server.tsx`, `entry-client.tsx`, `App.tsx`: SSR plumbing
 - `app/src/components/`, `config.ts`, `index.css`, `vite.config.ts`, `tsconfig.json`
 
 **No starter template was used.** The app was scaffolded by hand rather than via
@@ -383,7 +383,7 @@ without a cast, and a cast is exactly what would let a mismatched prop through.
 The `switch` lets TypeScript narrow the union for free.
 
 **Configuration is split across two files on purpose.** `config.ts` is imported
-by components so it must not touch `process.env` — that would break in the
+by components so it must not touch `process.env`, which would break in the
 browser. Anything server-only lives in `wp/client.ts`, which components import
 with `import type` so it is erased from the browser bundle.
 
@@ -410,7 +410,7 @@ the rendered markup for a block that contains other blocks: WordPress keeps the
 nested content in `innerBlocks` and `innerHTML` holds only the markup around it.
 An editor-authored Media & Text block therefore arrived with its content column
 empty, and the parser dropped it as "nothing to render". The seed content hid
-this, because it writes the heading and paragraph inline — the one shape where
+this, because it writes the heading and paragraph inline, the one shape where
 `innerHTML` happens to be complete. Fixed by reading container blocks through
 `render_block()`.
 
