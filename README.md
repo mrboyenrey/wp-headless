@@ -170,12 +170,12 @@ block takes.
 flowchart TD
     A["Editor picks a Cover block<br/>in wp-admin"] --> B["WordPress stores it in post_content<br/>as HTML + block comments"]
     B --> C["headless-blocks plugin:<br/>parse_blocks() reads the block tree"]
-    C --> D["Block_Parser narrows it to the<br/>4 types this site can draw"]
+    C --> D["Block_Parser narrows it to the<br/>5 types this site can draw"]
     D --> E["WPGraphQL answers with a<br/>ContentBlock union"]
     E --> F["React: fetch on the server<br/>during SSR"]
     F --> G["Zod parses each block against<br/>blockSchema"]
     G --> H["BlockRenderer switches on __typename"]
-    H --> I["Hero / RichText / ImageText /<br/>CallToAction, typed props"]
+    H --> I["Hero / Heading / RichText /<br/>ImageText / CallToAction, typed props"]
 ```
 
 Four decisions in that chain are worth defending.
@@ -201,7 +201,7 @@ that is the only place they exist.
 Every renderable block is its own object type, joined by `ContentBlock`:
 
 ```graphql
-union ContentBlock = HeroBlock | RichTextBlock | ImageTextBlock | CallToActionBlock
+union ContentBlock = HeroBlock | HeadingBlock | RichTextBlock | ImageTextBlock | CallToActionBlock
 ```
 
 The alternative, one `Block` type with a `type` string and every field optional,
@@ -216,7 +216,11 @@ or send a value nobody expected, and none of that can reach a component:
 
 ```ts
 export const blockSchema = z.discriminatedUnion('__typename', [
-  heroBlockSchema, richTextBlockSchema, imageTextBlockSchema, callToActionBlockSchema,
+  heroBlockSchema,
+  headingBlockSchema,
+  richTextBlockSchema,
+  imageTextBlockSchema,
+  callToActionBlockSchema,
 ]);
 ```
 
@@ -433,7 +437,7 @@ is broken" turns out to mean "I was looking at the wrong port". Fixed with the
 
 Working end to end, verified: WordPress → plugin → GraphQL union → Zod → typed
 components → SSR HTML → hydration with no console errors and no failed requests.
-Four pages, three posts, three services, five block types, a WordPress-managed
+Three pages, three posts, three services, five block types, a WordPress-managed
 menu, unknown blocks reported, and a production build serving real
 server-rendered HTML.
 
