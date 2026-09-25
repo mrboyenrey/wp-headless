@@ -39,6 +39,7 @@ if (!defined('ABSPATH')) {
 require_once __DIR__ . '/includes/class-block-parser.php';
 require_once __DIR__ . '/includes/class-schema.php';
 require_once __DIR__ . '/includes/class-editor.php';
+require_once __DIR__ . '/includes/class-content-types.php';
 
 /**
  * WPGraphQL fires this once its type registry exists, which is the only point
@@ -46,6 +47,22 @@ require_once __DIR__ . '/includes/class-editor.php';
  * WPGraphQL is deactivated the hook simply never fires and the plugin is inert.
  */
 add_action('graphql_register_types', [Schema::class, 'register_types']);
+
+/**
+ * The content model beyond pages and posts.
+ *
+ * Services are declared here rather than in a theme, because there is no theme:
+ * the front end is the only consumer, so the content model belongs next to the
+ * contract the front end reads.
+ */
+add_action('init', [Content_Types::class, 'register']);
+add_action('graphql_register_types', [Content_Types::class, 'register_graphql_fields']);
+
+/**
+ * The navigation location, which the theme would normally declare. WPGraphQL
+ * will not expose a menu that is not assigned to a registered location.
+ */
+add_action('after_setup_theme', [Content_Types::class, 'register_menu_location']);
 
 /**
  * Keep the block inserter to the blocks this front end can draw.

@@ -26,9 +26,13 @@ final class Schema {
     /**
      * Post types the block fields are attached to.
      *
+     * Service is included as well as Page and Post: a service detail page is
+     * composed of the same blocks as everything else, so it reads through the
+     * same mapper rather than growing a second rendering path.
+     *
      * @var array<int, string>
      */
-    private const POST_TYPES = ['Page', 'Post'];
+    private const POST_TYPES = ['Page', 'Post', 'Service'];
 
     /**
      * Hooked to `graphql_register_types`.

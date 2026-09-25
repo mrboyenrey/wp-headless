@@ -78,7 +78,7 @@ final class Editor {
          */
         $post_type = self::editor_post_type($context);
 
-        if (!in_array($post_type, ['page', 'post'], true)) {
+        if (!in_array($post_type, ['page', 'post', 'service'], true)) {
             return $allowed;
         }
 
