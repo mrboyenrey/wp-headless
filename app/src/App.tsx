@@ -1,49 +1,74 @@
-import { BlockRenderer } from './blocks/BlockRenderer';
-import { ContentNotice } from './components/ContentNotice';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
 // `import type` is load-bearing, not stylistic: it is what stops the data
 // layer (and its `process.env` access) being pulled into the browser bundle.
-import type { SiteContent } from './wp/queries';
+import type { SiteContent, View } from './wp/queries';
+import { BlockList } from './views/BlockList';
+import { NotFound } from './views/NotFound';
+import { PostIndex } from './views/PostIndex';
+import { PostView } from './views/PostView';
+import { ServiceIndex } from './views/ServiceIndex';
+import { ServiceView } from './views/ServiceView';
 
 /**
- * The page, from validated content to markup.
+ * The site, from validated content to markup.
  *
  * This component is the same code on the server and in the browser; the only
  * difference is that the server uses it to produce a string and the browser
  * uses it to adopt the markup already on screen.
+ *
+ * The loader decides which view this is, and nothing else does. There is no
+ * router library and no list of pages: the loader asks WordPress what lives at
+ * the requested path and hands back a `View`, which the switch narrows.
  */
 export function App({ content }: { content: SiteContent }) {
-  const { page, navigation, pathname } = content;
+  const { navigation, pathname, view } = content;
 
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader navigation={navigation} currentPath={pathname} />
 
       <main id="main" className="flex-1">
-        {page ? (
-          page.blocks.map((block, index) => (
-            /*
-              Index keys are usually a smell, but they are correct here and
-              only here: the list is fixed for a given render, blocks have no
-              identity of their own, and nothing can be reordered underneath
-              React. Using the block type as the key would be worse, since a
-              page may legitimately contain two paragraphs.
-            */
-            <BlockRenderer key={index} block={block} />
-          ))
-        ) : (
-          <NotFound pathname={pathname} />
-        )}
-
-        {page ? (
-          <ContentNotice skipped={page.skipped} omitted={page.omitted} dropped={page.dropped} />
-        ) : null}
+        <ViewSwitch view={view} pathname={pathname} />
       </main>
 
       <SiteFooter />
     </div>
   );
+}
+
+function ViewSwitch({ view, pathname }: { view: View; pathname: string }) {
+  switch (view.kind) {
+    case 'page':
+      return <BlockList report={view} />;
+
+    case 'post':
+      return <PostView view={view} />;
+
+    case 'service':
+      return <ServiceView view={view} />;
+
+    case 'postIndex':
+      return <PostIndex view={view} />;
+
+    case 'serviceIndex':
+      return <ServiceIndex view={view} />;
+
+    case 'notFound':
+      return <NotFound pathname={pathname} />;
+
+    default: {
+      /*
+       * The same exhaustiveness check the block renderer uses: assigning to
+       * `never` is what makes a seventh route kind a compile error rather than
+       * a blank space on a page.
+       */
+      const unhandled: never = view;
+      void unhandled;
+
+      return null;
+    }
+  }
 }
 
 function NotFound({ pathname }: { pathname: string }) {

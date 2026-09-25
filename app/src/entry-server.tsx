@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server';
 import { App } from './App';
 import { SITE_NAME } from './config';
-import { loadSiteContent, type SiteContent } from './wp/queries';
+import { loadSiteContent, type SiteContent, type View } from './wp/queries';
 
 /**
  * The server entry point.
@@ -34,7 +34,7 @@ export async function render(pathname: string): Promise<RenderResult> {
     // A path WordPress does not have is a real 404 with a real status code.
     // Rendering a friendly "not found" page with a 200 is worse than useless:
     // it tells search engines the page exists.
-    status: content.page ? 200 : 404,
+    status: content.view.kind === 'notFound' ? 404 : 200,
     head: buildHead(content),
     html: renderToString(<App content={content} />),
     content,
@@ -49,20 +49,18 @@ export async function render(pathname: string): Promise<RenderResult> {
  * from content that the browser has not seen yet.
  */
 function buildHead(content: SiteContent): string {
-  const title = content.page
-    ? `${content.page.title} | ${SITE_NAME}`
-    : `Page not found | ${SITE_NAME}`;
+  const { view } = content;
 
   const tags = [
-    `<title>${escapeHtml(title)}</title>`,
-    `<meta name="description" content="${escapeHtml(describePage(content))}" />`,
+    `<title>${escapeHtml(pageTitle(view))}</title>`,
+    `<meta name="description" content="${escapeHtml(describeView(view))}" />`,
   ];
 
-  const heroImage = firstHeroImage(content);
+  const preview = previewImage(view);
 
-  if (heroImage !== null) {
+  if (preview !== null) {
     tags.push(
-      `<meta property="og:image" content="${escapeHtml(heroImage)}" />`,
+      `<meta property="og:image" content="${escapeHtml(preview)}" />`,
       `<meta name="twitter:card" content="summary_large_image" />`,
     );
   }
@@ -71,14 +69,56 @@ function buildHead(content: SiteContent): string {
 }
 
 /**
- * Derive a meta description from the page's own prose.
+ * The document title.
  *
- * WordPress has no dedicated field for this, and asking an editor to maintain
- * one separately from the copy is how descriptions end up stale. The first
- * paragraph is already a fair summary, so it is used directly.
+ * An archive is not a WordPress entry, so it cannot take its title from one,
+ * and a 404 has no title at all. Every other route does, which is why the title
+ * stays the CMS's to control rather than the template's.
  */
-function describePage(content: SiteContent): string {
-  const richText = content.page?.blocks.find((block) => block.__typename === 'RichTextBlock');
+function pageTitle(view: View): string {
+  switch (view.kind) {
+    case 'page':
+    case 'post':
+    case 'service':
+      return `${view.title} | ${SITE_NAME}`;
+
+    case 'postIndex':
+      return `Writing | ${SITE_NAME}`;
+
+    case 'serviceIndex':
+      return `Services | ${SITE_NAME}`;
+
+    case 'notFound':
+      return `Page not found | ${SITE_NAME}`;
+  }
+}
+
+/**
+ * The meta description.
+ *
+ * The excerpt from WordPress when the editor wrote one, and the first paragraph
+ * of the body when they did not. That order matters: the field exists so an
+ * editor can control what a search result says, and deriving it when they have
+ * not filled it in keeps the tag from being empty.
+ */
+function describeView(view: View): string {
+  if (view.kind === 'postIndex') {
+    return `Writing from ${SITE_NAME}.`;
+  }
+
+  if (view.kind === 'serviceIndex') {
+    return `Services offered by ${SITE_NAME}.`;
+  }
+
+  if (view.kind === 'notFound') {
+    return FALLBACK_DESCRIPTION;
+  }
+
+  if (view.description !== null) {
+    return clamp(view.description);
+  }
+
+  const richText = view.blocks.find((block) => block.__typename === 'RichTextBlock');
 
   if (richText === undefined || richText.__typename !== 'RichTextBlock') {
     return FALLBACK_DESCRIPTION;
@@ -86,17 +126,34 @@ function describePage(content: SiteContent): string {
 
   // Strip tags for the meta tag, and collapse the whitespace the block editor
   // leaves behind.
-  const text = richText.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return clamp(richText.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+}
 
+/** Search results cut off at about 155 characters, so the tag does it first. */
+function clamp(text: string): string {
   return text.length > 155 ? `${text.slice(0, 152).trimEnd()}...` : text;
 }
 
-function firstHeroImage(content: SiteContent): string | null {
-  const hero = content.page?.blocks.find((block) => block.__typename === 'HeroBlock');
+/**
+ * The image a link preview should use.
+ *
+ * A post or a service has an image an editor chose, so that is the answer. A
+ * page does not, so its hero block is the nearest equivalent. An archive has
+ * neither and goes without, rather than borrowing the first card's image and
+ * misrepresenting the page.
+ */
+function previewImage(view: View): string | null {
+  if (view.kind === 'post' || view.kind === 'service') {
+    return view.image?.url ?? null;
+  }
 
-  return hero !== undefined && hero.__typename === 'HeroBlock' && hero.image !== null
-    ? hero.image.url
-    : null;
+  if (view.kind !== 'page') {
+    return null;
+  }
+
+  const hero = view.blocks.find((block) => block.__typename === 'HeroBlock');
+
+  return hero !== undefined && hero.__typename === 'HeroBlock' && hero.image !== null ? hero.image.url : null;
 }
 
 function escapeHtml(value: string): string {

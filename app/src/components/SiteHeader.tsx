@@ -4,9 +4,9 @@ import type { NavigationItem } from '../wp/queries';
 /**
  * The site header.
  *
- * The navigation is not hardcoded: it is the list of published WordPress pages,
- * fetched on the server. Publishing a new page adds a link here with no deploy,
- * which is the point of the exercise.
+ * The navigation is not hardcoded: it comes from a menu an editor maintains in
+ * WordPress, fetched on the server. Re-arranging it in wp-admin changes the
+ * header with no deploy, which is the point of the exercise.
  */
 export function SiteHeader({
   navigation,
