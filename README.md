@@ -170,12 +170,12 @@ block takes.
 flowchart TD
     A["Editor picks a Cover block<br/>in wp-admin"] --> B["WordPress stores it in post_content<br/>as HTML + block comments"]
     B --> C["headless-blocks plugin:<br/>parse_blocks() reads the block tree"]
-    C --> D["Block_Parser narrows it to the<br/>5 types this site can draw"]
+    C --> D["Block_Parser narrows it to the<br/>6 types this site can draw"]
     D --> E["WPGraphQL answers with a<br/>ContentBlock union"]
     E --> F["React: fetch on the server<br/>during SSR"]
     F --> G["Zod parses each block against<br/>blockSchema"]
     G --> H["BlockRenderer switches on __typename"]
-    H --> I["Hero / Heading / RichText /<br/>ImageText / CallToAction, typed props"]
+    H --> I["Hero / Heading / RichText / ImageText /<br/>CallToAction / Video, typed props"]
 ```
 
 Four decisions in that chain are worth defending.
@@ -201,7 +201,7 @@ that is the only place they exist.
 Every renderable block is its own object type, joined by `ContentBlock`:
 
 ```graphql
-union ContentBlock = HeroBlock | HeadingBlock | RichTextBlock | ImageTextBlock | CallToActionBlock
+union ContentBlock = HeroBlock | HeadingBlock | RichTextBlock | ImageTextBlock | CallToActionBlock | VideoBlock
 ```
 
 The alternative, one `Block` type with a `type` string and every field optional,
@@ -221,6 +221,7 @@ export const blockSchema = z.discriminatedUnion('__typename', [
   richTextBlockSchema,
   imageTextBlockSchema,
   callToActionBlockSchema,
+  videoBlockSchema,
 ]);
 ```
 
@@ -325,6 +326,7 @@ assigned to a registered location.
 | `core/paragraph` | `RichTextBlock` | `RichText.tsx` | `html` |
 | `core/media-text` | `ImageTextBlock` | `ImageText.tsx` | `heading`, `bodyHtml`, `mediaPosition`, `image` |
 | `core/buttons` | `CallToActionBlock` | `CallToAction.tsx` | `label`, `url`, `opensInNewTab` |
+| `core/video` | `VideoBlock` | `Video.tsx` | `src`, `posterUrl`, `caption`, `controls`, `autoplay`, `loop`, `muted` |
 
 Anything else is reported as skipped rather than rendered as raw HTML, and the
 block inserter is restricted to the same list (`includes/class-editor.php`), so
@@ -358,7 +360,7 @@ a block the front end cannot draw cannot be inserted in the first place.
   deliberate graphics rather than as a failed image load. The random seed comes
   from the filename, so a clone draws the same pictures every time
 - `app/server.js`: the SSR server (dev and production in one file)
-- `app/src/blocks/`: the schema, the renderer and the five components
+- `app/src/blocks/`: the schema, the renderer and the six components
 - `app/src/views/`: one view per route kind, plus the shared block list
 - `app/src/wp/`: the GraphQL client and the page loader
 - `app/src/entry-server.tsx`, `entry-client.tsx`, `App.tsx`: SSR plumbing
@@ -437,7 +439,7 @@ is broken" turns out to mean "I was looking at the wrong port". Fixed with the
 
 Working end to end, verified: WordPress → plugin → GraphQL union → Zod → typed
 components → SSR HTML → hydration with no console errors and no failed requests.
-Three pages, three posts, three services, five block types, a WordPress-managed
+Three pages, three posts, three services, six block types, a WordPress-managed
 menu, unknown blocks reported, and a production build serving real
 server-rendered HTML.
 

@@ -249,7 +249,7 @@
               <span class="flow__n">3</span>
               <div>
                 <strong>The parser reads the block tree</strong>
-                <span><code>parse_blocks()</code>, then narrowed to the five types this site can draw.</span>
+                <span><code>parse_blocks()</code>, then narrowed to the six types this site can draw.</span>
               </div>
             </li>
             <li>
@@ -297,7 +297,8 @@
   | HeadingBlock
   | RichTextBlock
   | ImageTextBlock
-  | CallToActionBlock</code></pre>
+  | CallToActionBlock
+  | VideoBlock</code></pre>
 
               <p>
                 Every renderable block is its own object type with its own fields, joined by a
@@ -362,6 +363,7 @@
   richTextBlockSchema,
   imageTextBlockSchema,
   callToActionBlockSchema,
+  videoBlockSchema,
 ]);
 
 export type Block = z.infer&lt;typeof blockSchema&gt;;
@@ -636,7 +638,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
               pass; the production server was run and checked separately from the dev server.
             </li>
             <li>
-              <strong>Five block types round-trip correctly</strong>, with the unsupported block
+              <strong>Six block types round-trip correctly</strong>, with the unsupported block
               reported as skipped.
             </li>
             <li>
@@ -709,7 +711,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
                   are committed
                 </li>
                 <li>The SSR server: development and production in one file, no framework</li>
-                <li>The block schema, renderer and five components</li>
+                <li>The block schema, renderer and six components</li>
                 <li>The GraphQL client, page loader, layout, entries and configuration</li>
               </ul>
             </div>
@@ -726,7 +728,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
           <p class="lede lede--tight">
             Working end to end and verified: WordPress &rarr; plugin &rarr; GraphQL union &rarr;
             Zod &rarr; typed components &rarr; server-rendered HTML &rarr; hydration. Three pages,
-            three posts, three services, five block types, a WordPress-managed menu, and a
+            three posts, three services, six block types, a WordPress-managed menu, and a
             production build serving real HTML.
           </p>
 
