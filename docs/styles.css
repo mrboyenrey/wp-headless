@@ -388,19 +388,16 @@ pre code {
   color: var(--text);
 }
 
-.bugs,
 .next {
   color: var(--text-dim);
   padding-left: 1.3rem;
   max-width: var(--measure);
 }
 
-.bugs li,
 .next li {
   margin-block: 0.85rem;
 }
 
-.bugs strong,
 .next strong {
   color: var(--text);
 }

@@ -621,70 +621,40 @@ export type BlockOf&lt;T extends BlockType&gt; =
           <p class="eyebrow">11 &middot; Evidence</p>
           <h2 id="h12">What was actually verified</h2>
 
-          <div class="split split--even">
-            <div>
-              <ul class="checks">
-                <li>
-                  <strong>True server rendering.</strong> 7.3&nbsp;KB of HTML containing the
-                  headline, hero image, stylesheet link and embedded data, all present before any
-                  JavaScript runs.
-                </li>
-                <li>
-                  <strong>Clean hydration.</strong> Zero console errors, zero failed requests, in
-                  both development and production builds.
-                </li>
-                <li>
-                  <strong>The build is clean.</strong> Type checking and the production build both
-                  pass; the production server was run and checked separately from the dev server.
-                </li>
-                <li>
-                  <strong>Five block types round-trip correctly</strong>, with the unsupported block
-                  reported as skipped.
-                </li>
-                <li>
-                  <strong>Two content types beyond pages.</strong> Posts and services carry their
-                  own fields and have index and detail views, and their bodies go through the same
-                  block mapper as a page does.
-                </li>
-                <li>
-                  <strong>Real status codes, and metadata from the CMS.</strong> An unknown slug is
-                  a 404 rather than a friendly page pretending to be one, and the title and
-                  description come from the content instead of from a template.
-                </li>
-                <li>
-                  <strong>Publishing needs no developer.</strong> A page or a post created in
-                  WordPress appears at its own address with no code written and nothing deployed.
-                  Its place in the header is the editor's too, because the navigation is a menu
-                  rather than a list of pages in the code.
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 class="sub sub--first">Three real bugs found and fixed</h3>
-              <ol class="bugs">
-                <li>
-                  <strong>The image came back empty.</strong> Media&nbsp;&amp;&nbsp;Text stores its
-                  attachment as <code>mediaId</code>; Cover stores it as <code>id</code>. Reading
-                  only <code>id</code> silently degraded the image to a bare URL with no dimensions
-                  and no alt text. It still looked plausible.
-                </li>
-                <li>
-                  <strong>A heading rendered twice.</strong> The heading lives inside the content
-                  column, so it arrived both as its own field and inside the body HTML.
-                </li>
-                <li>
-                  <strong>A block authored in the editor parsed as empty.</strong> For a block that
-                  contains other blocks, <code>innerHTML</code> holds only the markup
-                  <em>around</em> the nested content, which lives in <code>innerBlocks</code>. An
-                  editor-authored Media&nbsp;&amp;&nbsp;Text block arrived with an empty content
-                  column, so the parser dropped it as &ldquo;nothing to render&rdquo;. The seed
-                  content hid this: it writes the heading and paragraph inline, the one shape where
-                  <code>innerHTML</code> happens to be complete.
-                </li>
-              </ol>
-            </div>
-          </div>
+          <ul class="checks">
+            <li>
+              <strong>True server rendering.</strong> 7.3&nbsp;KB of HTML containing the headline,
+              hero image, stylesheet link and embedded data, all present before any JavaScript runs.
+            </li>
+            <li>
+              <strong>Clean hydration.</strong> Zero console errors, zero failed requests, in both
+              development and production builds.
+            </li>
+            <li>
+              <strong>The build is clean.</strong> Type checking and the production build both
+              pass; the production server was run and checked separately from the dev server.
+            </li>
+            <li>
+              <strong>Five block types round-trip correctly</strong>, with the unsupported block
+              reported as skipped.
+            </li>
+            <li>
+              <strong>Two content types beyond pages.</strong> Posts and services carry their own
+              fields and have index and detail views, and their bodies go through the same block
+              mapper as a page does.
+            </li>
+            <li>
+              <strong>Real status codes, and metadata from the CMS.</strong> An unknown slug is a
+              404 rather than a friendly page pretending to be one, and the title and description
+              come from the content instead of from a template.
+            </li>
+            <li>
+              <strong>Publishing needs no developer.</strong> A page or a post created in WordPress
+              appears at its own address with no code written and nothing deployed. Its place in
+              the header is the editor's too, because the navigation is a menu rather than a list
+              of pages in the code.
+            </li>
+          </ul>
         </div>
       </section>
 
