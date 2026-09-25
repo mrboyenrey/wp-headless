@@ -624,12 +624,22 @@ seed_post(
     ])
 );
 
-$service_image = seed_image('seed-service.jpg', 'Abstract gradient, rose', [46, 16, 32], [244, 114, 182], 1000, 1000);
+/*
+ * One image per service, not one shared between them. The services index draws
+ * a card per service, and three cards showing the same photograph reads as a
+ * broken page rather than as a deliberate one. 8:5 so the card does not have to
+ * crop.
+ */
+$service_images = [
+    'builds'   => seed_image('seed-service-builds.jpg', 'Abstract gradient, rose', [46, 16, 32], [244, 114, 182], 1200, 750),
+    'headless' => seed_image('seed-service-headless.jpg', 'Abstract gradient, violet', [30, 18, 60], [139, 92, 246], 1200, 750),
+    'ops'      => seed_image('seed-service-ops.jpg', 'Abstract gradient, teal to emerald', [8, 38, 40], [16, 185, 129], 1200, 750),
+];
 
 seed_service(
     'custom-wordpress-builds',
     'Custom WordPress builds',
-    $service_image,
+    $service_images['builds'],
     'Block libraries, content models and admin experiences built around how a team already works.',
     'From 1800',
     '⚙',
@@ -645,7 +655,7 @@ seed_service(
 seed_service(
     'headless-front-ends',
     'Headless front ends',
-    $service_image,
+    $service_images['headless'],
     'React and TypeScript front ends that read WordPress over GraphQL and render on the server.',
     'From 2400',
     '◈',
@@ -662,7 +672,7 @@ seed_service(
 seed_service(
     'operations-and-automation',
     'Operations and automation',
-    $service_image,
+    $service_images['ops'],
     'Deployment, observability and the unglamorous work that keeps a site up at three in the morning.',
     '',
     '⟳',

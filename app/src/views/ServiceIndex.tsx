@@ -13,6 +13,11 @@ type ServiceIndex = Extract<View, { kind: 'serviceIndex' }>;
  *
  * The price is optional and simply does not render when it is absent, which is
  * the reason the GraphQL field resolves empty meta to null rather than "".
+ *
+ * The cover image sits at the top of the card. The card has no padding of its
+ * own so the image can reach the rounded corners; the padding moved to an inner
+ * element, which also carries `flex-1` so the price stays pinned to the bottom
+ * of cards whose descriptions differ in length.
  */
 export function ServiceIndex({ view }: { view: ServiceIndex }) {
   return (
@@ -28,27 +33,42 @@ export function ServiceIndex({ view }: { view: ServiceIndex }) {
           {view.entries.map((entry) => (
             <article
               key={entry.href}
-              className="flex flex-col rounded-xl border border-slate-800 bg-slate-900/50 p-6 transition-colors hover:border-brand-700"
+              className="flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 transition-colors hover:border-brand-700"
             >
-              {entry.icon ? (
-                <span className="text-2xl leading-none" aria-hidden="true">
-                  {entry.icon}
-                </span>
-              ) : null}
-
-              <h2 className="mt-4 font-display text-xl font-semibold tracking-tight text-white">
-                <a href={entry.href} className="transition-colors hover:text-brand-300">
-                  {entry.title}
+              {entry.image ? (
+                <a href={entry.href} tabIndex={-1} className="block shrink-0">
+                  <img
+                    src={entry.image.url}
+                    alt={entry.image.alt ?? ''}
+                    width={entry.image.width ?? undefined}
+                    height={entry.image.height ?? undefined}
+                    loading="lazy"
+                    className="aspect-[8/5] w-full object-cover transition-opacity hover:opacity-80"
+                  />
                 </a>
-              </h2>
-
-              {entry.description ? (
-                <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-400">{entry.description}</p>
               ) : null}
 
-              {entry.meta ? (
-                <p className="mt-5 font-mono text-xs uppercase tracking-widest text-brand-400">{entry.meta}</p>
-              ) : null}
+              <div className="flex flex-1 flex-col p-6">
+                {entry.icon ? (
+                  <span className="text-2xl leading-none" aria-hidden="true">
+                    {entry.icon}
+                  </span>
+                ) : null}
+
+                <h2 className="mt-4 font-display text-xl font-semibold tracking-tight text-white">
+                  <a href={entry.href} className="transition-colors hover:text-brand-300">
+                    {entry.title}
+                  </a>
+                </h2>
+
+                {entry.description ? (
+                  <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-400">{entry.description}</p>
+                ) : null}
+
+                {entry.meta ? (
+                  <p className="mt-5 font-mono text-xs uppercase tracking-widest text-brand-400">{entry.meta}</p>
+                ) : null}
+              </div>
             </article>
           ))}
         </div>

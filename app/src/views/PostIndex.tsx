@@ -10,6 +10,11 @@ type PostIndex = Extract<View, { kind: 'postIndex' }>;
  * each linking to the post itself. The date comes from WordPress rather than
  * from the order of the array, because the order can be changed and the date
  * is a fact about the post.
+ *
+ * The cover image is a thumbnail rather than a full-width banner, because the
+ * index is a reading list and a wall of banners buries the titles. It is wrapped
+ * in the same link as the title with `tabIndex={-1}`, so the picture is
+ * clickable without becoming a second tab stop on every row.
  */
 export function PostIndex({ view }: { view: PostIndex }) {
   return (
@@ -26,25 +31,40 @@ export function PostIndex({ view }: { view: PostIndex }) {
             const date = formatDate(entry.meta);
 
             return (
-              <li key={entry.href}>
-                {date ? (
-                  <time
-                    dateTime={entry.meta ?? undefined}
-                    className="font-mono text-xs uppercase tracking-widest text-brand-400"
-                  >
-                    {date}
-                  </time>
-                ) : null}
-
-                <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-white">
-                  <a href={entry.href} className="transition-colors hover:text-brand-300">
-                    {entry.title}
+              <li key={entry.href} className="flex gap-5">
+                {entry.image ? (
+                  <a href={entry.href} tabIndex={-1} className="shrink-0">
+                    <img
+                      src={entry.image.url}
+                      alt={entry.image.alt ?? ''}
+                      width={entry.image.width ?? undefined}
+                      height={entry.image.height ?? undefined}
+                      loading="lazy"
+                      className="h-20 w-32 rounded-lg object-cover transition-opacity hover:opacity-80 sm:h-24 sm:w-40"
+                    />
                   </a>
-                </h2>
-
-                {entry.description ? (
-                  <p className="mt-3 leading-relaxed text-slate-300">{entry.description}</p>
                 ) : null}
+
+                <div className="min-w-0">
+                  {date ? (
+                    <time
+                      dateTime={entry.meta ?? undefined}
+                      className="font-mono text-xs uppercase tracking-widest text-brand-400"
+                    >
+                      {date}
+                    </time>
+                  ) : null}
+
+                  <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-white">
+                    <a href={entry.href} className="transition-colors hover:text-brand-300">
+                      {entry.title}
+                    </a>
+                  </h2>
+
+                  {entry.description ? (
+                    <p className="mt-3 leading-relaxed text-slate-300">{entry.description}</p>
+                  ) : null}
+                </div>
               </li>
             );
           })}
