@@ -4,10 +4,10 @@
  *
  *   docker compose run --rm wpcli eval-file /seed/seed.php
  *
- * The site this seeds is deliberately unremarkable: three pages made of the
- * four block types the front end understands, plus one block type it does not,
- * so the "skipped blocks" behaviour can be seen working rather than merely
- * described.
+ * The site this seeds is deliberately unremarkable: pages, posts and services
+ * made of the block types the front end understands, plus one block type it
+ * does not, so the "skipped blocks" behaviour can be seen working rather than
+ * merely described.
  *
  * The script is idempotent. Everything it creates is tagged with the
  * `_headless_seed` meta key and deleted at the start of the next run, so
@@ -37,6 +37,9 @@ require_once ABSPATH . 'wp-admin/includes/image.php';
 
 const SEED_META = '_headless_seed';
 
+/** Name of the navigation menu this script owns. */
+const SEED_MENU = 'Primary';
+
 /* -------------------------------------------------------------------------
  * Housekeeping
  * ---------------------------------------------------------------------- */
@@ -46,7 +49,7 @@ const SEED_META = '_headless_seed';
  */
 function seed_purge(): void {
     $ids = get_posts([
-        'post_type'   => ['page', 'attachment'],
+        'post_type'   => ['page', 'post', 'service', 'attachment'],
         'post_status' => 'any',
         'numberposts' => -1,
         'fields'      => 'ids',
@@ -60,6 +63,18 @@ function seed_purge(): void {
     }
 
     WP_CLI::log(sprintf('Purged %d item(s) from a previous run.', count($ids)));
+
+    /*
+     * The menu is deleted rather than tagged: menu items are posts of their own
+     * type, and deleting those directly leaves the menu itself behind as an
+     * empty shell that then gets duplicated on the next run.
+     */
+    $menu = wp_get_nav_menu_object(SEED_MENU);
+
+    if ($menu instanceof WP_Term) {
+        wp_delete_nav_menu($menu->term_id);
+        WP_CLI::log(sprintf('Deleted the "%s" menu from a previous run.', SEED_MENU));
+    }
 }
 
 /**
@@ -69,12 +84,15 @@ function seed_purge(): void {
  * and make a finished page look unfinished.
  */
 function seed_remove_default_content(): void {
-    foreach (['sample-page', 'privacy-policy'] as $slug) {
-        $page = get_page_by_path($slug);
+    // The pages WordPress creates on install, plus its sample post. All of them
+    // are published, so they would otherwise turn up in an index or a menu and
+    // make a finished site look unfinished.
+    foreach ([['sample-page', 'page'], ['privacy-policy', 'page'], ['hello-world', 'post']] as [$slug, $type]) {
+        $post = get_page_by_path($slug, OBJECT, $type);
 
-        if ($page instanceof WP_Post) {
-            wp_delete_post($page->ID, true);
-            WP_CLI::log(sprintf('Removed the default "%s" page.', $page->post_title));
+        if ($post instanceof WP_Post) {
+            wp_delete_post($post->ID, true);
+            WP_CLI::log(sprintf('Removed the default "%s".', $post->post_title));
         }
     }
 }
@@ -200,6 +218,21 @@ function block_paragraph(string $html): string {
 HTML;
 }
 
+/**
+ * A heading block.
+ *
+ * The level is written both into the attributes and into the element, because
+ * that is what the editor itself does: the parser reads the markup, the editor
+ * reads the attribute, and a mismatch between the two would be an invalid block.
+ */
+function block_heading(string $text, int $level = 2): string {
+    return <<<HTML
+<!-- wp:heading {"level":{$level}} -->
+<h{$level} class="wp-block-heading">{$text}</h{$level}>
+<!-- /wp:heading -->
+HTML;
+}
+
 function block_media_text(array $image, string $heading, string $body, string $position = 'left'): string {
     $attrs = wp_json_encode([
         'mediaId'       => $image['id'],
@@ -256,33 +289,134 @@ HTML;
  * Pages
  * ---------------------------------------------------------------------- */
 
-function seed_page(string $slug, string $title, string $content): int {
-    $existing = get_page_by_path($slug);
+/**
+ * A page. The excerpt is the field the meta description is taken from, so a page
+ * without one falls back to its first paragraph.
+ */
+function seed_page(string $slug, string $title, string $content, string $excerpt = ''): int {
+    return seed_entry('page', $slug, $title, $content, $excerpt === '' ? [] : ['post_excerpt' => $excerpt]);
+}
 
-    $data = [
-        'post_type'    => 'page',
+/**
+ * Create or update any content type from its slug.
+ *
+ * Idempotent by slug rather than by id, so re-running updates the entry an
+ * editor may since have edited instead of creating a second one beside it.
+ *
+ * @param array<string, mixed> $extra Extra post fields, e.g. post_excerpt.
+ */
+function seed_entry(string $post_type, string $slug, string $title, string $content, array $extra = []): int {
+    $existing = get_page_by_path($slug, OBJECT, $post_type);
+
+    $data = array_merge([
+        'post_type'    => $post_type,
         'post_title'   => $title,
         'post_name'    => $slug,
         'post_content' => $content,
         'post_status'  => 'publish',
-    ];
+    ], $extra);
 
     if ($existing instanceof WP_Post) {
         $data['ID'] = $existing->ID;
-        $page_id    = wp_update_post($data, true);
+        $id         = wp_update_post($data, true);
     } else {
-        $page_id = wp_insert_post($data, true);
+        $id = wp_insert_post($data, true);
     }
 
-    if (is_wp_error($page_id)) {
-        WP_CLI::error(sprintf('Could not save page "%s": %s', $title, $page_id->get_error_message()));
+    if (is_wp_error($id)) {
+        WP_CLI::error(sprintf('Could not save "%s": %s', $title, $id->get_error_message()));
     }
 
-    update_post_meta((int) $page_id, SEED_META, '1');
+    update_post_meta((int) $id, SEED_META, '1');
 
-    WP_CLI::log(sprintf('Saved page "%s" at /%s (id %d).', $title, $slug, $page_id));
+    WP_CLI::log(sprintf('Saved %s "%s" at /%s (id %d).', $post_type, $title, $slug, $id));
 
-    return (int) $page_id;
+    return (int) $id;
+}
+
+/**
+ * A blog post: title, date, cover image, body and excerpt.
+ *
+ * The body is blocks, not a blob of HTML, so a post is rendered by the same
+ * mapper as a page. That is the point worth making: the seam is a property of
+ * the content model, not of one template.
+ */
+function seed_post(string $slug, string $title, array $image, string $excerpt, string $date, string $content): int {
+    $id = seed_entry('post', $slug, $title, $content, [
+        'post_excerpt' => $excerpt,
+        'post_date'    => $date,
+    ]);
+
+    set_post_thumbnail($id, $image['id']);
+
+    return $id;
+}
+
+/**
+ * A service: the page fields plus its own.
+ *
+ * The meta keys come from the plugin class rather than being repeated as
+ * strings here, so the writer and the GraphQL resolver cannot drift apart.
+ */
+function seed_service(string $slug, string $title, array $image, string $short, string $price, string $icon, string $content): int {
+    $id = seed_entry('service', $slug, $title, $content, ['post_excerpt' => $short]);
+
+    set_post_thumbnail($id, $image['id']);
+    update_post_meta($id, \HeadlessBlocks\Content_Types::META_SHORT_DESCRIPTION, $short);
+    update_post_meta($id, \HeadlessBlocks\Content_Types::META_ICON, $icon);
+
+    // An empty price is meaningful: the field is optional, and leaving it out
+    // is how the front end is shown handling a null rather than a blank string.
+    if ($price !== '') {
+        update_post_meta($id, \HeadlessBlocks\Content_Types::META_PRICE, $price);
+    }
+
+    return $id;
+}
+
+/**
+ * The header navigation, as a real WordPress menu.
+ *
+ * The brief asks for navigation managed in WordPress rather than written in the
+ * code, and a menu is the honest way to do that. Items pointing at WordPress
+ * content carry the page id; the two archive routes are custom links because
+ * they belong to the front end, not to WordPress.
+ *
+ * @param array<int, array{label: string, page_id?: int, url?: string}> $items
+ */
+function seed_menu(array $items): void {
+    $menu_id = wp_create_nav_menu(SEED_MENU);
+
+    if (is_wp_error($menu_id)) {
+        WP_CLI::error('Could not create the menu: ' . $menu_id->get_error_message());
+    }
+
+    foreach ($items as $item) {
+        $args = [
+            'menu-item-title'  => $item['label'],
+            'menu-item-status' => 'publish',
+        ];
+
+        if (isset($item['page_id'])) {
+            $args['menu-item-object-id'] = $item['page_id'];
+            $args['menu-item-object']    = 'page';
+            $args['menu-item-type']      = 'post_type';
+        } else {
+            $args['menu-item-url']  = (string) $item['url'];
+            $args['menu-item-type'] = 'custom';
+        }
+
+        wp_update_nav_menu_item((int) $menu_id, 0, $args);
+    }
+
+    /*
+     * Assign it to the location the plugin declares. Without this the menu
+     * exists but WPGraphQL will not expose it, and the front end quietly sees
+     * no navigation at all.
+     */
+    set_theme_mod('nav_menu_locations', [\HeadlessBlocks\Content_Types::MENU_LOCATION => (int) $menu_id]);
+
+    WP_CLI::log(sprintf('Created the "%s" menu with %d items.', SEED_MENU, count($items)));
 }
 
 /* -------------------------------------------------------------------------
@@ -327,7 +461,7 @@ $home_id = seed_page('home', 'Home', implode("\n\n", [
     ),
     block_buttons('Get in touch', '/contact'),
     block_unsupported_list(),
-]));
+]), 'A personal site where WordPress holds the content and a server-rendered React application draws it.');
 
 $about_id = seed_page('about', 'About', implode("\n\n", [
     block_cover('About', 'Who is behind this, in the briefest possible terms.', $hero_image, 70),
@@ -344,7 +478,7 @@ $about_id = seed_page('about', 'About', implode("\n\n", [
         'right'
     ),
     '<!-- wp:quote -->' . "\n" . '<blockquote class="wp-block-quote"><p>The front end should not have to guess what it is being given.</p></blockquote>' . "\n" . '<!-- /wp:quote -->',
-]));
+]), 'Who is behind this, in the briefest possible terms.');
 
 $contact_id = seed_page('contact', 'Contact', implode("\n\n", [
     block_cover('Contact', 'Say hello.', $hero_image, 74),
@@ -354,11 +488,152 @@ $contact_id = seed_page('contact', 'Contact', implode("\n\n", [
         . 'on every request rather than being rebuilt.'
     ),
     block_buttons('Email me', 'mailto:mrboyenrey@gmail.com'),
-]));
+]), 'Say hello, and what you would like to talk about.');
+
+/* -------------------------------------------------------------------------
+ * Posts and services
+ *
+ * The two content types beyond pages. Their bodies are blocks, not blobs of
+ * HTML, so a post is rendered by the same mapper as a page: the seam is a
+ * property of the content model rather than of one template.
+ * ---------------------------------------------------------------------- */
+
+$post_covers = [
+    seed_image('seed-post-1.jpg', 'Abstract gradient, indigo', [24, 16, 58], [99, 102, 241], 1200, 800),
+    seed_image('seed-post-2.jpg', 'Abstract gradient, emerald', [10, 40, 34], [16, 185, 129], 1200, 800),
+    seed_image('seed-post-3.jpg', 'Abstract gradient, amber', [52, 32, 8], [245, 158, 11], 1200, 800),
+];
+
+seed_post(
+    'reading-wordpress-as-a-database',
+    'Reading WordPress as a database',
+    $post_covers[0],
+    'post_content is not data. It is HTML with the structure hidden in comments, which is the problem this project exists to solve.',
+    '2026-09-08 09:00:00',
+    implode("\n\n", [
+        block_heading('The content is HTML, the structure is a comment'),
+        block_paragraph(
+            'Handed post_content directly, a front end has two options and both are bad: echo it '
+            . 'and give up on components, or scrape it and give up on the CMS. There is a third, '
+            . 'which is to read the block tree WordPress has already parsed and republish it as '
+            . 'real fields.'
+        ),
+        block_heading('What that buys', 3),
+        block_paragraph(
+            'A typed union on the far side, a mapper on this one, and a contract that can be '
+            . 'inspected rather than agreed in a wiki page.'
+        ),
+    ])
+);
+
+seed_post(
+    'what-a-graphql-union-buys',
+    'What a GraphQL union buys you',
+    $post_covers[1],
+    'One loose block type with every field optional moves the problem to the consumer. A union settles it in the schema.',
+    '2026-09-12 09:00:00',
+    implode("\n\n", [
+        block_heading('Settled by the schema, not by the component'),
+        block_paragraph(
+            'With a single Block type, every component has to decide for itself which fields it '
+            . 'can trust. With a union, that question is already answered by the time the data '
+            . 'arrives, and the renderer can prove that every member is handled.'
+        ),
+        block_paragraph(
+            'The union mirrors the discriminated union on the front end member for member, which '
+            . 'is what makes the exhaustiveness check in the renderer worth having.'
+        ),
+    ])
+);
+
+seed_post(
+    'two-addresses-for-one-container',
+    'Two addresses for one container',
+    $post_covers[2],
+    'The application fetches WordPress over the Docker network, the browser fetches images over localhost. Swap them and every image breaks.',
+    '2026-09-18 09:00:00',
+    implode("\n\n", [
+        block_heading('A server address and a browser address'),
+        block_paragraph(
+            'Inside the network the application talks to wordpress:80. The browser cannot resolve '
+            . 'that name, so images are served from localhost:8080 instead. Being fetched '
+            . 'server-side is also why the application never has to think about CORS.'
+        ),
+        block_paragraph(
+            'Getting those two the wrong way round is the classic way to break a containerised '
+            . 'server-rendered app: it works locally, where everything is localhost, and then every '
+            . 'image 404s once it is containerised.'
+        ),
+    ])
+);
+
+$service_image = seed_image('seed-service.jpg', 'Abstract gradient, rose', [46, 16, 32], [244, 114, 182], 1000, 1000);
+
+seed_service(
+    'custom-wordpress-builds',
+    'Custom WordPress builds',
+    $service_image,
+    'Block libraries, content models and admin experiences built around how a team already works.',
+    'From 1800',
+    '⚙',
+    implode("\n\n", [
+        block_heading('Built around the editorial workflow'),
+        block_paragraph(
+            'A block library is a design decision as much as a technical one. The useful question '
+            . 'is not how many blocks a site can have but how few an editor can be trusted with.'
+        ),
+    ])
+);
+
+seed_service(
+    'headless-front-ends',
+    'Headless front ends',
+    $service_image,
+    'React and TypeScript front ends that read WordPress over GraphQL and render on the server.',
+    'From 2400',
+    '◈',
+    implode("\n\n", [
+        block_heading('Content in the CMS, rendering in the application'),
+        block_paragraph(
+            'Headless is worth its cost when more than one thing needs the content, or when the '
+            . 'front end has to do something a theme cannot. Otherwise a theme is not a limitation, '
+            . 'it is leverage.'
+        ),
+    ])
+);
+
+seed_service(
+    'operations-and-automation',
+    'Operations and automation',
+    $service_image,
+    'Deployment, observability and the unglamorous work that keeps a site up at three in the morning.',
+    '',
+    '⟳',
+    implode("\n\n", [
+        block_heading('The part nobody demos'),
+        block_paragraph(
+            'Reproducible environments, health checks, and knowing what happens when the CMS is '
+            . 'unreachable. This is the third service, and it is the one without a price on it, '
+            . 'because the field is optional and the front end has to cope with that.'
+        ),
+    ])
+);
+
+/* -------------------------------------------------------------------------
+ * Navigation
+ * ---------------------------------------------------------------------- */
+
+seed_menu([
+    ['label' => 'Home', 'page_id' => $home_id],
+    ['label' => 'Blog', 'url' => '/blog'],
+    ['label' => 'Services', 'url' => '/services'],
+    ['label' => 'About', 'page_id' => $about_id],
+    ['label' => 'Contact', 'page_id' => $contact_id],
+]);
 
 // The front page is a real WordPress page, not a special case in the theme.
 update_option('show_on_front', 'page');
 update_option('page_on_front', $home_id);
 
-WP_CLI::success('Seeded 3 pages: / (home), /about, /contact.');
+WP_CLI::success('Seeded 4 pages, 3 posts, 3 services and the navigation menu.');
 WP_CLI::log(sprintf('Page ids - home: %d, about: %d, contact: %d', $home_id, $about_id, $contact_id));
