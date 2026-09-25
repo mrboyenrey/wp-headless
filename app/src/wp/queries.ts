@@ -36,7 +36,7 @@ const SERVICE_INDEX_PATH = '/services';
  * The block selection, shared by every content type that can hold blocks.
  *
  * Written once and interpolated into each query rather than copied three times,
- * because a fourth block type has to reach all of them, or posts quietly start
+ * because a new block type has to reach all of them, or posts quietly start
  * rendering differently from pages.
  */
 const BLOCK_SELECTION = /* GraphQL */ `
@@ -65,6 +65,15 @@ const BLOCK_SELECTION = /* GraphQL */ `
       label
       url
       opensInNewTab
+    }
+    ... on VideoBlock {
+      src
+      posterUrl
+      caption
+      controls
+      autoplay
+      loop
+      muted
     }
   }
   skippedBlocks

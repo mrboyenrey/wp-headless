@@ -41,6 +41,7 @@ final class Block_Parser {
         'core/paragraph'  => 'parse_rich_text',
         'core/media-text' => 'parse_image_text',
         'core/buttons'    => 'parse_call_to_action',
+        'core/video'      => 'parse_video',
     ];
 
     /**
@@ -309,6 +310,64 @@ final class Block_Parser {
             'label'            => $label,
             'url'              => $url,
             'opensInNewTab'    => !empty($attrs['linkTarget']),
+        ];
+    }
+
+    /**
+     * core/video -> VideoBlock.
+     *
+     * The block records an uploaded video as an attachment id and leaves the
+     * file's address to WordPress, so the markup is rendered and the address is
+     * read back off the tag. Reading `attrs['src']` alone would find nothing for
+     * anything uploaded to the media library, which is the same trap the image
+     * blocks have: the id is the real reference, the URL is a convenience.
+     *
+     * The four playback flags are read off the rendered tag rather than out of
+     * the attributes, because WordPress only writes an attribute when it differs
+     * from the block's own default. The tag is what the editor actually asked
+     * for, defaults included.
+     */
+    private static function parse_video(array $block): ?array {
+        $attrs    = $block['attrs'] ?? [];
+        $document = self::load_html(self::rendered_html($block));
+
+        if ($document === null) {
+            return null;
+        }
+
+        $video = self::first_element($document, ['video']);
+
+        $src = $video instanceof \DOMElement ? trim($video->getAttribute('src')) : '';
+
+        // A video added by address rather than uploaded keeps its address on the
+        // block itself, so it is still worth looking there.
+        if ($src === '') {
+            $src = trim((string) ($attrs['src'] ?? ''));
+        }
+
+        // A video with no address is not a video. Reported as omitted rather
+        // than drawn as an empty player.
+        if ($src === '') {
+            return null;
+        }
+
+        $poster  = $video instanceof \DOMElement ? trim($video->getAttribute('poster')) : '';
+        $caption = self::text_of(self::element_by_class($document, 'wp-element-caption'));
+
+        $controls = $video instanceof \DOMElement && $video->hasAttribute('controls');
+        $autoplay = $video instanceof \DOMElement && $video->hasAttribute('autoplay');
+        $loop     = $video instanceof \DOMElement && $video->hasAttribute('loop');
+        $muted    = $video instanceof \DOMElement && $video->hasAttribute('muted');
+
+        return [
+            self::TYPE_KEY => 'VideoBlock',
+            'src'          => $src,
+            'posterUrl'    => $poster !== '' ? $poster : null,
+            'caption'      => $caption !== '' ? $caption : null,
+            'controls'     => $controls,
+            'autoplay'     => $autoplay,
+            'loop'         => $loop,
+            'muted'        => $muted,
         ];
     }
 

@@ -20,6 +20,12 @@ import { z } from 'zod';
  * 1. Register the type in the WordPress plugin (class-schema.php).
  * 2. Add it to `blockSchema` below.
  * 3. Add a component and a case in BlockRenderer.tsx.
+ * 4. Add an inline fragment for it in `wp/queries.ts`.
+ *
+ * Step 4 is the one that gets forgotten, and it fails quietly: GraphQL answers
+ * with the block carrying none of the fields it needs, so it is dropped as
+ * invalid rather than reported as an unknown type. The block arrives and the
+ * page is simply missing a section.
  *
  * Step 3 is enforced by the compiler, not by discipline: the `never` guard in
  * the renderer fails to compile until every member of the union is handled.
@@ -103,6 +109,24 @@ export const callToActionBlockSchema = z.object({
 });
 
 /**
+ * A video player.
+ *
+ * The four playback flags are separate booleans rather than one settings object
+ * because each is independent in the editor and each is an attribute on the
+ * element the component emits.
+ */
+export const videoBlockSchema = z.object({
+  __typename: z.literal('VideoBlock'),
+  src: z.string().min(1),
+  posterUrl: z.string().nullable(),
+  caption: z.string().nullable(),
+  controls: z.boolean(),
+  autoplay: z.boolean(),
+  loop: z.boolean(),
+  muted: z.boolean(),
+});
+
+/**
  * The block library, as the front end understands it.
  *
  * The order here is not meaningful; the discriminant is `__typename`.
@@ -113,6 +137,7 @@ export const blockSchema = z.discriminatedUnion('__typename', [
   richTextBlockSchema,
   imageTextBlockSchema,
   callToActionBlockSchema,
+  videoBlockSchema,
 ]);
 
 /** A fully validated block. The only kind of block a component ever receives. */

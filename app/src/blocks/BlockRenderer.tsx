@@ -4,6 +4,7 @@ import { Heading } from './Heading';
 import { Hero } from './Hero';
 import { ImageText } from './ImageText';
 import { RichText } from './RichText';
+import { Video } from './Video';
 
 /**
  * The single place where a block becomes a component.
@@ -35,6 +36,9 @@ export function BlockRenderer({ block }: { block: Block }) {
 
     case 'HeadingBlock':
       return <Heading block={block} />;
+
+    case 'VideoBlock':
+      return <Video block={block} />;
 
     default: {
       // Assigning to `never` is what performs the exhaustiveness check: if any

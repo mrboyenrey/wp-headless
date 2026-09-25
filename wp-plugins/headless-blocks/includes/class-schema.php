@@ -155,6 +155,40 @@ final class Schema {
                 ],
             ],
         ]);
+
+        register_graphql_object_type('VideoBlock', [
+            'description' => __('A video player.', 'headless-blocks'),
+            'fields'      => [
+                'src'      => [
+                    'type'        => 'String',
+                    'description' => __('The video file, resolved from the attachment when one was uploaded.', 'headless-blocks'),
+                ],
+                'posterUrl' => [
+                    'type'        => 'String',
+                    'description' => __('Still frame shown before playback, null when none was set.', 'headless-blocks'),
+                ],
+                'caption'  => [
+                    'type'        => 'String',
+                    'description' => __('Optional caption beneath the player.', 'headless-blocks'),
+                ],
+                'controls' => [
+                    'type'        => 'Boolean',
+                    'description' => __('Whether the editor left the playback controls on.', 'headless-blocks'),
+                ],
+                'autoplay' => [
+                    'type'        => 'Boolean',
+                    'description' => __('Whether the video was set to play on load.', 'headless-blocks'),
+                ],
+                'loop'     => [
+                    'type'        => 'Boolean',
+                    'description' => __('Whether the video was set to repeat.', 'headless-blocks'),
+                ],
+                'muted'    => [
+                    'type'        => 'Boolean',
+                    'description' => __('Whether the video was set to start without sound.', 'headless-blocks'),
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -173,6 +207,7 @@ final class Schema {
                 'ImageTextBlock',
                 'CallToActionBlock',
                 'HeadingBlock',
+                'VideoBlock',
             ],
             /**
              * The parser tags every block with the GraphQL type it should be
