@@ -54,6 +54,7 @@ docker compose run --rm wpcli core install \
   --admin_email=admin@example.com --skip-email
 docker compose run --rm wpcli plugin install wp-graphql --activate
 docker compose run --rm wpcli plugin activate headless-blocks
+docker compose run --rm wpcli plugin activate headless-redirect
 
 # Content to look at
 docker compose run --rm wpcli eval-file /seed/seed.php
@@ -76,6 +77,11 @@ codespace on main**. The devcontainer runs `.devcontainer/setup.sh` for you.
 | WordPress admin | http://localhost:8080/wp-admin | `admin` / `admin` |
 | GraphiQL (when logged in) | http://localhost:8080/graphql | — |
 | phpMyAdmin | http://localhost:8081 | `root` / `root` |
+
+WordPress's own front end is closed. Opening <http://localhost:8080> redirects to
+the application, so the active WordPress theme is never served to a browser -
+only `/wp-admin`, `/graphql` and uploaded files remain reachable on that port.
+See `wp-plugins/headless-redirect/`.
 
 The credentials are throwaway values for a container bound to localhost. They
 are not secrets and are not for anything else — but change them before pointing
@@ -142,6 +148,7 @@ once it is containerised.
 | `port 3000 is already in use` | An earlier dev server is still alive — stop it, or run `PORT=3001 npm run dev` |
 | `ERR_CONNECTION_REFUSED` on :3000 | The Node server is not running. Docker being up is not enough |
 | A section is missing from a page | The content notice on the page names the block and the reason |
+| The WordPress theme is visible | `APP_URL` is not the forwarded address, so the redirect points at a dead port — re-run `.devcontainer/setup.sh` |
 | Images broken inside a Codespace | `WP_URL` is not the forwarded address — re-run `.devcontainer/setup.sh` |
 | WordPress redirects to localhost | Same cause as above |
 
@@ -276,11 +283,14 @@ typed blocks, that is the right trade.
 | WordPress block | GraphQL type | React component | Props |
 | --- | --- | --- | --- |
 | `core/cover` | `HeroBlock` | `Hero.tsx` | `heading`, `subheading`, `overlayOpacity`, `image` |
+| `core/heading` | `HeadingBlock` | `Heading.tsx` | `level`, `html` |
 | `core/paragraph` | `RichTextBlock` | `RichText.tsx` | `html` |
 | `core/media-text` | `ImageTextBlock` | `ImageText.tsx` | `heading`, `bodyHtml`, `mediaPosition`, `image` |
 | `core/buttons` | `CallToActionBlock` | `CallToAction.tsx` | `label`, `url`, `opensInNewTab` |
 
-Anything else is reported as skipped rather than rendered as raw HTML.
+Anything else is reported as skipped rather than rendered as raw HTML, and the
+block inserter is restricted to the same list (`includes/class-editor.php`), so
+a block the front end cannot draw cannot be inserted in the first place.
 
 ---
 
@@ -299,11 +309,14 @@ Anything else is reported as skipped rather than rendered as raw HTML.
 
 - `docker-compose.yml`, `.env.example` — the stack
 - `wp-plugins/headless-blocks/` — the plugin. `Block_Parser` (Gutenberg tree →
-  typed blocks) and `Schema` (GraphQL types, union, fields)
+  typed blocks), `Schema` (GraphQL types, union, fields) and `Editor` (keeps the
+  block inserter to the renderable library)
+- `wp-plugins/headless-redirect/` — closes WordPress's own front end so the
+  active theme is never served to a browser
 - `seed/seed.php` — reproducible demo content, including the placeholder images
   drawn with GD so no binaries are committed
 - `app/server.js` — the SSR server (dev and production in one file)
-- `app/src/blocks/` — the schema, the renderer and the four components
+- `app/src/blocks/` — the schema, the renderer and the five components
 - `app/src/wp/` — the GraphQL client and the page loader
 - `app/src/entry-server.tsx`, `entry-client.tsx`, `App.tsx` — SSR plumbing
 - `app/src/components/`, `config.ts`, `index.css`, `vite.config.ts`, `tsconfig.json`
@@ -342,7 +355,7 @@ with `import type` so it is erased from the browser bundle.
 
 ## Notes from the build
 
-Two things cost real time and are worth recording.
+Four things cost real time and are worth recording.
 
 **The wp-cli container could not write to the shared volume.** The `wordpress:cli`
 image is Alpine, where `www-data` is uid 82; the `wordpress:php8.3-apache` image
@@ -356,13 +369,27 @@ on, and the navigation derived from page URIs was a list of query strings. Fixed
 in the seed by setting `permalink_structure` to `/%postname%/` and flushing
 rewrite rules.
 
+**A block authored in the editor parsed as empty.** `$block['innerHTML']` is not
+the rendered markup for a block that contains other blocks: WordPress keeps the
+nested content in `innerBlocks` and `innerHTML` holds only the markup around it.
+An editor-authored Media & Text block therefore arrived with its content column
+empty, and the parser dropped it as "nothing to render". The seed content hid
+this, because it writes the heading and paragraph inline — the one shape where
+`innerHTML` happens to be complete. Fixed by reading container blocks through
+`render_block()`.
+
+**The active theme was reachable at the WordPress address.** Not a bug in either
+system, but a trap: two front ends on one body of content drift, and "the layout
+is broken" turns out to mean "I was looking at the wrong port". Fixed with the
+`headless-redirect` plugin, which sends WordPress's front end to the application.
+
 ---
 
 ## Where I stopped
 
 Working end to end, verified: WordPress → plugin → GraphQL union → Zod → typed
 components → SSR HTML → hydration with no console errors and no failed requests.
-Three seeded pages, four block types, unknown blocks reported, production build
+Three seeded pages, five block types, unknown blocks reported, production build
 serving real server-rendered HTML.
 
 Not done, in the order I would do it next:
@@ -370,9 +397,10 @@ Not done, in the order I would do it next:
 1. **Generated TypeScript types.** The schema could be introspected and
    `BlockRenderer`'s union generated from it, so the WordPress schema is the
    single source of truth rather than the Zod file mirroring it by hand.
-2. **Graceful rendering for unknown blocks.** Currently skipped with a notice.
-   A placeholder component that renders the block's text content would be better
-   for a real site.
+2. **Graceful rendering for the blocks that remain unknown.** The block inserter
+   is restricted to the renderable library, so this can now only arise from
+   content that predates that restriction. A placeholder that renders the
+   unrenderable block's own text would degrade better than omitting it.
 3. **Caching.** Every request queries WordPress. A short-lived cache keyed by
    path — or Vite's SSG mode for pages that rarely change — removes that.
 4. **Navigation from a WordPress menu** rather than from the list of published

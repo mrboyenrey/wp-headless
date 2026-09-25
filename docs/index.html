@@ -248,7 +248,7 @@
               <span class="flow__n">3</span>
               <div>
                 <strong>The parser reads the block tree</strong>
-                <span><code>parse_blocks()</code>, then narrowed to the four types this site can draw.</span>
+                <span><code>parse_blocks()</code>, then narrowed to the five types this site can draw.</span>
               </div>
             </li>
             <li>
@@ -293,6 +293,7 @@
             <div>
               <pre><code>union ContentBlock =
     HeroBlock
+  | HeadingBlock
   | RichTextBlock
   | ImageTextBlock
   | CallToActionBlock</code></pre>
@@ -356,6 +357,7 @@
 
           <pre><code>export const blockSchema = z.discriminatedUnion('__typename', [
   heroBlockSchema,
+  headingBlockSchema,
   richTextBlockSchema,
   imageTextBlockSchema,
   callToActionBlockSchema,
@@ -403,13 +405,15 @@ export type BlockOf&lt;T extends BlockType&gt; =
             <article class="step">
               <span class="step__n">1</span>
               <h3>Register the type</h3>
-              <p>In the plugin's schema class, alongside the existing four.</p>
+              <p>In the plugin: a handler in <code>Block_Parser</code>, then the type in the
+                schema's union.</p>
             </article>
 
             <article class="step">
               <span class="step__n">2</span>
               <h3>Add it to the union</h3>
-              <p>One entry in <code>blockSchema</code>.</p>
+              <p>One entry in <code>blockSchema</code> &mdash; and one inline fragment in the
+                GraphQL query, without which the block arrives with no fields.</p>
             </article>
 
             <article class="step">
@@ -558,7 +562,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
               the production server was run and checked separately from the dev server.
             </li>
             <li>
-              <strong>Four block types round-trip correctly</strong>, with the unsupported block
+              <strong>Five block types round-trip correctly</strong>, with the unsupported block
               reported as skipped.
             </li>
             <li>
@@ -568,7 +572,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
             </li>
           </ul>
 
-          <h3 class="sub">Two real bugs found and fixed</h3>
+          <h3 class="sub">Three real bugs found and fixed</h3>
           <ol class="bugs">
             <li>
               <strong>The image came back empty.</strong> Media&nbsp;&amp;&nbsp;Text stores its
@@ -579,6 +583,15 @@ export type BlockOf&lt;T extends BlockType&gt; =
             <li>
               <strong>A heading rendered twice.</strong> The heading lives inside the content
               column, so it arrived both as its own field and inside the body HTML.
+            </li>
+            <li>
+              <strong>A block authored in the editor parsed as empty.</strong> For a block that
+              contains other blocks, <code>innerHTML</code> holds only the markup
+              <em>around</em> the nested content, which lives in <code>innerBlocks</code>. An
+              editor-authored Media&nbsp;&amp;&nbsp;Text block arrived with an empty content
+              column, so the parser dropped it as &ldquo;nothing to render&rdquo;. The seed
+              content hid this: it writes the heading and paragraph inline, the one shape where
+              <code>innerHTML</code> happens to be complete.
             </li>
           </ol>
         </div>
@@ -616,13 +629,20 @@ export type BlockOf&lt;T extends BlockType&gt; =
               <h3 class="sub sub--first">Written for this exercise</h3>
               <ul class="rules rules--tight">
                 <li>The Compose stack and its environment file</li>
-                <li><code>headless-blocks</code> &mdash; the parser and the GraphQL schema</li>
+                <li>
+                  <code>headless-blocks</code> &mdash; the parser, the GraphQL schema and the
+                  editor constraint
+                </li>
+                <li>
+                  <code>headless-redirect</code> &mdash; sends WordPress's own front end to the
+                  application, so the active theme is never served
+                </li>
                 <li>
                   A seeding script that generates its own placeholder images with GD, so no binaries
                   are committed
                 </li>
                 <li>The SSR server &mdash; development and production in one file, no framework</li>
-                <li>The block schema, renderer and four components</li>
+                <li>The block schema, renderer and five components</li>
                 <li>The GraphQL client, page loader, layout, entries and configuration</li>
               </ul>
             </div>
@@ -639,7 +659,7 @@ export type BlockOf&lt;T extends BlockType&gt; =
           <p class="lede lede--tight">
             Working end to end and verified: WordPress &rarr; plugin &rarr; GraphQL union &rarr;
             Zod &rarr; typed components &rarr; server-rendered HTML &rarr; hydration. Three seeded
-            pages, four block types, unknown blocks reported, production build serving real HTML.
+            pages, five block types, unknown blocks reported, production build serving real HTML.
           </p>
 
           <p>Not done, in the order it would be done next:</p>
@@ -680,25 +700,27 @@ export type BlockOf&lt;T extends BlockType&gt; =
           <p class="eyebrow">13 &mdash; Reproducing it</p>
           <h2 id="h14">Running it</h2>
 
-          <p class="lede lede--tight">Requirements: Docker Desktop and Node 20 or newer.</p>
+          <p class="lede lede--tight">
+            Requirement: Docker Desktop. Nothing else &mdash; no Node, no PHP, no MySQL.
+          </p>
 
-          <pre><code># 1. The stack
+          <pre><code># One command does the lot: containers, WordPress, plugins, content, build
+bash .devcontainer/setup.sh
+# Then open http://localhost:3000
+
+# The same thing by hand:
 cp .env.example .env
-docker compose up -d
+docker compose up -d --build
 
-# 2. WordPress, the GraphQL plugin, and the custom plugin
 docker compose run --rm wpcli core install \
   --url="http://localhost:8080" --title="Boien Reyes" \
   --admin_user=admin --admin_password=admin \
   --admin_email=admin@example.com --skip-email
 docker compose run --rm wpcli plugin install wp-graphql --activate
 docker compose run --rm wpcli plugin activate headless-blocks
+docker compose run --rm wpcli plugin activate headless-redirect
 
-# 3. Content to look at
-docker compose run --rm wpcli eval-file /seed/seed.php
-
-# 4. The front end
-cd app &amp;&amp; npm install &amp;&amp; npm run dev</code></pre>
+docker compose run --rm wpcli eval-file /seed/seed.php</code></pre>
 
           <p class="note">
             The credentials above are throwaway values for a container bound to localhost. They are
